@@ -1,5 +1,6 @@
 
-import { useRef, useState } from 'react';
+// Import React to resolve namespace errors for React.MouseEvent
+import React, { useRef, useState } from 'react';
 
 export function useGrabToScroll(direction: 'horizontal' | 'vertical' = 'horizontal') {
   const scrollRef = useRef<HTMLDivElement>(null);

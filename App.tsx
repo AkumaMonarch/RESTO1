@@ -51,8 +51,21 @@ export default function App() {
     setView(AppView.MENU); 
   }, [showToast]);
   
-  const updateQuantity = useCallback((id: string, delta: number) => { 
-    setCart(prev => id === 'ALL' ? [] : prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0)); 
+  const updateQuantity = useCallback((id: string, delta: number, index?: number) => { 
+    setCart(prev => {
+      if (id === 'ALL') return [];
+      const newState = [...prev];
+      if (index !== undefined && index >= 0 && index < newState.length) {
+        if (delta === -9999) { // Flag for removal
+          newState.splice(index, 1);
+          return newState;
+        }
+        newState[index].quantity = Math.max(0, newState[index].quantity + delta);
+        return newState.filter(item => item.quantity > 0);
+      }
+      // Fallback to ID-based matching if index not provided
+      return prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0);
+    }); 
   }, []);
 
   const handleOrderConfirmed = async () => {
