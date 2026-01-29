@@ -51,6 +51,21 @@ const MagicIcon = () => (
   </svg>
 );
 
+const CameraIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+    <circle cx="12" cy="13" r="4"></circle>
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+    <polyline points="17 8 12 3 7 8"></polyline>
+    <line x1="12" y1="3" x2="12" y2="15"></line>
+  </svg>
+);
+
 /**
  * --- Utils ---
  */
@@ -386,10 +401,15 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
   const [activeTab, setActiveTab] = useState<'General' | 'Categories' | 'Products'>('General');
   const isDark = localSettings.themeMode === 'dark';
+  const camInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentEditingProdId, setCurrentEditingProdId] = useState<string | null>(null);
   
-  const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-slate-300'}`;
+  const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/5 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-slate-300'}`;
   const cardStyles = `p-4 rounded-2xl border transition-all shadow-sm ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`;
-  const labelStyles = "text-[9px] font-black uppercase tracking-widest opacity-50 px-1 mb-1.5 block";
+  const labelStyles = "text-[9px] font-black uppercase tracking-widest opacity-40 px-1 mb-1.5 block";
+  const dangerButtonStyles = `flex items-center justify-center rounded-xl transition-all border ${isDark ? 'bg-red-950/20 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-red-50 border-red-100 text-red-600 hover:bg-red-600 hover:text-white'}`;
+  const actionButtonStyles = `flex items-center justify-center rounded-xl transition-all border p-3 shadow-sm active:scale-95 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-blue-600'}`;
 
   const toggleDay = (day: string) => {
     setLocalSettings(prev => ({
@@ -445,8 +465,24 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
     setLocalSettings(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && currentEditingProdId) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateProduct(currentEditingProdId, 'image', reader.result as string);
+        setCurrentEditingProdId(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
+      {/* Hidden Inputs for Media Capture */}
+      <input type="file" accept="image/*" capture="environment" className="hidden" ref={camInputRef} onChange={handleFileChange} />
+      <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+
       <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center space-x-2">
           <button onClick={onBack} className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}><BackIcon /></button>
@@ -484,7 +520,7 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
                   <div key={wh.day} className={cardStyles}>
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-black text-[11px] uppercase tracking-wide">{wh.day}</span>
-                      <button onClick={() => toggleDay(wh.day)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${wh.isOpen ? 'bg-green-500 text-white' : isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400'}`}>
+                      <button onClick={() => toggleDay(wh.day)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${wh.isOpen ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400'}`}>
                         {wh.isOpen ? 'Open' : 'Closed'}
                       </button>
                     </div>
@@ -508,12 +544,12 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
                     const el = document.getElementById('new-holiday') as HTMLInputElement;
                     addHoliday(el.value);
                     el.value = '';
-                  }} className="bg-slate-900 text-white px-5 rounded-xl text-xl font-bold active:scale-95 transition-all">+</button>
+                  }} className="bg-slate-900 text-white px-5 rounded-xl text-xl font-bold active:scale-95 transition-all shadow-lg">+</button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {localSettings.forceHolidays.map(d => (
-                    <div key={d} className={`px-4 py-2 rounded-xl text-[10px] font-bold flex items-center gap-3 border ${isDark ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
-                      {d} <button onClick={() => removeHoliday(d)} className="font-black text-sm">✕</button>
+                    <div key={d} className={`px-4 py-2 rounded-xl text-[10px] font-bold flex items-center gap-3 border ${isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+                      {d} <button onClick={() => removeHoliday(d)} className="font-black text-sm hover:opacity-70">✕</button>
                     </div>
                   ))}
                   {localSettings.forceHolidays.length === 0 && <p className="text-[10px] opacity-40 px-1 py-2 italic">No holidays scheduled.</p>}
@@ -527,21 +563,21 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
           <div className="space-y-6 animate-scale-up">
             <div className="flex justify-between items-center px-1">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Manage Categories</h3>
-              <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Add New</button>
+              <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
             </div>
             <div className="space-y-3">
               {localSettings.categories.map(cat => (
                 <div key={cat.id} className={cardStyles}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 shrink-0">
                       <label className={labelStyles}>Icon</label>
                       <input className={`${inputStyles} text-center text-lg`} value={cat.icon} onChange={e => updateCategory(cat.id, 'icon', e.target.value)} />
                     </div>
                     <div className="flex-1">
-                      <label className={labelStyles}>Label</label>
+                      <label className={labelStyles}>Category Label</label>
                       <input className={inputStyles} value={cat.label} onChange={e => updateCategory(cat.id, 'label', e.target.value)} />
                     </div>
-                    <button onClick={() => removeCategory(cat.id)} className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all self-end border ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-red-50 border-red-100 text-red-600 hover:bg-red-600 hover:text-white'}`}>
+                    <button onClick={() => removeCategory(cat.id)} className={`${dangerButtonStyles} w-12 h-11 self-end`}>
                       <TrashIcon />
                     </button>
                   </div>
@@ -555,31 +591,52 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
           <div className="space-y-6 animate-scale-up">
             <div className="flex justify-between items-center px-1">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
-              <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Add New</button>
+              <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
             </div>
             <div className="space-y-5">
               {localSettings.products.map(prod => (
                 <div key={prod.id} className={cardStyles}>
-                  <div className="flex gap-4 mb-4">
+                  <div className="flex gap-4 mb-5">
                     <div className={`w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 ${isDark ? 'border-white/5 bg-slate-900' : 'border-slate-100 bg-slate-100'}`}>
                       <img src={prod.image} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 space-y-3">
-                      <div><label className={labelStyles}>Product Name</label><input className={inputStyles} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} /></div>
+                      <div><label className={labelStyles}>Name</label><input className={inputStyles} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} /></div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className={labelStyles}>Price</label><input className={inputStyles} type="number" value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} /></div>
+                        <div><label className={labelStyles}>Base Price</label><input className={inputStyles} type="number" value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} /></div>
                         <div><label className={labelStyles}>Category</label><select className={inputStyles} value={prod.category} onChange={e => updateProduct(prod.id, 'category', e.target.value)}>{localSettings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select></div>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div><label className={labelStyles}>Image URL</label><input className={inputStyles} value={prod.image} onChange={e => updateProduct(prod.id, 'image', e.target.value)} /></div>
-                    <div><label className={labelStyles}>Description</label><textarea rows={2} className={`${inputStyles} resize-none`} value={prod.description} onChange={e => updateProduct(prod.id, 'description', e.target.value)} /></div>
-                    <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                      <label className="flex items-center gap-2 text-[10px] font-black uppercase cursor-pointer opacity-70">
-                        <input type="checkbox" checked={prod.isBestseller} onChange={e => updateProduct(prod.id, 'isBestseller', e.target.checked)} className="w-5 h-5 rounded-md border-2 accent-blue-500" /> Best Seller?
+                    <div className="space-y-1.5">
+                      <label className={labelStyles}>Product Image</label>
+                      <div className="flex gap-2">
+                        <input className={inputStyles} value={prod.image} onChange={e => updateProduct(prod.id, 'image', e.target.value)} placeholder="https://..." />
+                        <button 
+                          onClick={() => { setCurrentEditingProdId(prod.id); camInputRef.current?.click(); }}
+                          className={actionButtonStyles} title="Take Photo">
+                          <CameraIcon />
+                        </button>
+                        <button 
+                          onClick={() => { setCurrentEditingProdId(prod.id); fileInputRef.current?.click(); }}
+                          className={actionButtonStyles} title="Upload Gallery">
+                          <UploadIcon />
+                        </button>
+                      </div>
+                    </div>
+                    <div><label className={labelStyles}>Short Description</label><textarea rows={2} className={`${inputStyles} resize-none leading-relaxed`} value={prod.description} onChange={e => updateProduct(prod.id, 'description', e.target.value)} /></div>
+                    <div className="flex justify-between items-center pt-3 mt-1 border-t border-white/5">
+                      <label className="flex items-center gap-3 text-[10px] font-black uppercase cursor-pointer opacity-70 group">
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${prod.isBestseller ? 'bg-blue-600 border-blue-600 text-white' : isDark ? 'border-white/20' : 'border-slate-300'}`}>
+                          {prod.isBestseller && <CheckIcon className="w-3.5 h-3.5" />}
+                        </div>
+                        <input type="checkbox" checked={prod.isBestseller} onChange={e => updateProduct(prod.id, 'isBestseller', e.target.checked)} className="hidden" /> 
+                        Recommend (Best Seller)?
                       </label>
-                      <button onClick={() => removeProduct(prod.id)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all border ${isDark ? 'bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-red-50 border-red-100 text-red-600 hover:bg-red-600 hover:text-white'}`}>Delete Item</button>
+                      <button onClick={() => removeProduct(prod.id)} className={`${dangerButtonStyles} px-5 py-2.5 text-[10px] font-black uppercase tracking-wider`}>
+                        Delete Item
+                      </button>
                     </div>
                   </div>
                 </div>
