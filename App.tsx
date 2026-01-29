@@ -603,6 +603,9 @@ const FinalSummaryView: React.FC<{
 
 const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => void }> = ({ settings, onRestart }) => {
   const isDark = settings.themeMode === 'dark';
+  // Stabilize the order number so it doesn't change on re-renders
+  const orderNumber = useMemo(() => Math.floor(Math.random() * 900) + 100, []);
+
   return (
     <div className={`h-full flex flex-col items-center justify-center p-12 text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}>
       <div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-[0_20px_60px_-10px_rgba(134,188,37,0.6)]">
@@ -614,7 +617,7 @@ const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => voi
       </div>
       <div className={`p-8 rounded-3xl border-2 w-full max-w-xs space-y-1 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p>
-        <p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{Math.floor(Math.random() * 900) + 100}</p>
+        <p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p>
       </div>
       <button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl hover:scale-105 active:scale-95 transition-all">Back to Home</button>
     </div>
