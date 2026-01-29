@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +14,7 @@
             --app-height: 100%;
             --safe-top: env(safe-area-inset-top);
             --safe-bottom: env(safe-area-inset-bottom);
+            --primary-rgb: 228, 0, 43; /* Default Red */
         }
         html, body {
             height: 100%;
@@ -20,7 +22,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #f3f4f6;
+            background-color: #0F172A;
             overscroll-behavior-y: none;
         }
         body {
@@ -49,54 +51,60 @@
         .animate-scale-up {
             animation: scale-up 0.2s ease-out forwards;
         }
-        @keyframes bounce-short {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-4px); }
+
+        /* The requested subtle background breathing animation */
+        @keyframes background-breathing {
+            0%, 100% { background-color: rgba(var(--primary-rgb), 0.01); }
+            50% { background-color: rgba(var(--primary-rgb), 0.08); }
         }
-        .animate-bounce-short {
-            animation: bounce-short 1s ease-in-out infinite;
+        .bg-breathing-cue {
+            animation: background-breathing 4s ease-in-out infinite;
         }
-        @keyframes breathing-ken-burns {
-            0% { transform: scale(1.0); opacity: 0.9; }
-            50% { transform: scale(1.15); opacity: 1; }
-            100% { transform: scale(1.0); opacity: 0.9; }
+
+        /* Shimmering sweep animation to indicate scrollability */
+        @keyframes shimmer-h {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
         }
-        .animate-breathing-hero {
-            animation: breathing-ken-burns 8s ease-in-out infinite;
+        .scroll-shimmer-h {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            pointer-events: none;
+            animation: shimmer-h 3s infinite linear;
+            z-index: 5;
         }
-        .fade-edges-mask {
-            mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0) 100%);
-            -webkit-mask-image: radial-gradient(circle at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 60%, rgba(0,0,0,0) 100%);
+        
+        @keyframes shimmer-v {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(200%); }
         }
-        input, textarea, select {
-            user-select: text !important;
-            scroll-margin-top: 100px;
+        .scroll-shimmer-v {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, transparent, rgba(255,255,255,0.03), transparent);
+            pointer-events: none;
+            animation: shimmer-v 5s infinite linear;
+            z-index: 5;
         }
-        @keyframes background-color-shift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+
         @keyframes background-color-shift-vertical {
             0% { background-position: 50% 0%; }
             50% { background-position: 50% 100%; }
             100% { background-position: 50% 0%; }
         }
-        .bg-animated-nav {
-            background-size: 300% 100%;
-            animation: background-color-shift 12s ease-in-out infinite;
-        }
         .bg-animated-vertical {
             background-size: 100% 400%;
             animation: background-color-shift-vertical 20s ease-in-out infinite;
         }
+
         .mask-edges {
-            -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
-            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
         }
         .mask-edges-vertical {
-            -webkit-mask-image: linear-gradient(to bottom, transparent, black 5%, black 90%, transparent);
-            mask-image: linear-gradient(to bottom, transparent, black 5%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, black 5%, black 95%, transparent);
         }
         .smooth-scroll {
             -webkit-overflow-scrolling: touch;
