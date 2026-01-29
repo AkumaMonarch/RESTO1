@@ -319,27 +319,27 @@ const ProductDetailView: React.FC<{
       
       <div className="flex-1 relative overflow-hidden bg-breathing-cue">
         <div className="scroll-shimmer-v"></div>
-        <div className="h-full overflow-y-auto p-4 space-y-8 no-scrollbar pb-64 smooth-scroll relative z-10 mask-edges-vertical">
+        <div className="h-full overflow-y-auto p-4 space-y-5 no-scrollbar pb-64 smooth-scroll relative z-10 mask-edges-vertical">
           <div className="flex flex-col items-center pt-2">
-             <div className={`w-full aspect-square max-w-[220px] rounded-[2.5rem] flex items-center justify-center p-5 mb-6 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.4)] overflow-hidden border-2 transition-transform duration-700 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                <img src={product.image} className="w-full h-full object-cover rounded-[1.75rem] shadow-xl" loading="eager" />
+             <div className={`w-full aspect-square max-w-[190px] rounded-[2rem] flex items-center justify-center p-4 mb-4 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.4)] overflow-hidden border-2 transition-transform duration-700 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                <img src={product.image} className="w-full h-full object-cover rounded-[1.5rem] shadow-xl" loading="eager" />
              </div>
-             <div className="px-4 text-center space-y-2">
-                <h3 className={`text-3xl font-black leading-[1] tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
-                <p className={`text-center font-medium max-w-[260px] mx-auto text-xs leading-snug opacity-70 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>{product.description}</p>
+             <div className="px-4 text-center space-y-1">
+                <h3 className={`text-2xl font-black leading-[1.1] tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
+                <p className={`text-center font-medium max-w-[240px] mx-auto text-[9px] leading-snug opacity-70 ${isDark ? 'text-white/60' : 'text-slate-500'}`}>{product.description}</p>
              </div>
           </div>
           
           {product.sizes.length > 0 && (
-            <section className="space-y-3 px-1">
-               <div className="flex justify-between items-center px-1"><h4 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Select Size</h4><span className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider" style={{ color: settings.primaryColor, backgroundColor: `${settings.primaryColor}15` }}>Required</span></div>
+            <section className="space-y-2 px-1">
+               <div className="flex justify-between items-center px-1"><h4 className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Select Size</h4><span className="text-[7px] font-black px-1 py-0.5 rounded-md uppercase tracking-wider" style={{ color: settings.primaryColor, backgroundColor: `${settings.primaryColor}15` }}>Required</span></div>
                <div className="grid grid-cols-3 gap-2">
                  {product.sizes.map(s => (
                    <button key={s.label} onClick={() => setSelectedSize(s)} 
-                    className={`py-5 rounded-2xl border-2 font-black transition-all flex flex-col items-center shadow-sm ${selectedSize.label === s.label ? 'scale-105' : isDark ? 'border-white/5 text-white/30 bg-white/5' : 'border-slate-50 text-slate-400 bg-white'}`} 
+                    className={`py-3.5 rounded-xl border-2 font-black transition-all flex flex-col items-center shadow-sm ${selectedSize.label === s.label ? 'scale-105' : isDark ? 'border-white/5 text-white/30 bg-white/5' : 'border-slate-50 text-slate-400 bg-white'}`} 
                     style={selectedSize.label === s.label ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}15`, color: settings.primaryColor } : {}}>
-                     <span className="text-xs">{s.label}</span>
-                     <span className="text-[8px] opacity-70 mt-0.5">+{settings.currency}{s.price.toFixed(2)}</span>
+                     <span className="text-[10px]">{s.label}</span>
+                     <span className="text-[7px] opacity-70 mt-0.5">+{settings.currency}{s.price.toFixed(2)}</span>
                    </button>
                  ))}
                </div>
@@ -347,13 +347,13 @@ const ProductDetailView: React.FC<{
           )}
           
           {product.addons.length > 0 && (
-            <section className="space-y-3 px-1">
-               <h4 className={`text-[10px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Add Extras</h4>
-               <div className="grid grid-cols-1 gap-2 pb-8">
+            <section className="space-y-2 px-1">
+               <h4 className={`text-[8px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Add Extras</h4>
+               <div className="grid grid-cols-1 gap-1.5 pb-4">
                  {product.addons.map(addon => (
-                   <label key={addon.label} className={`flex items-center justify-between p-5 border-2 rounded-3xl transition-all cursor-pointer shadow-sm ${selectedAddons.find(a => a.label === addon.label) ? 'border-opacity-100' : isDark ? 'bg-slate-800/30 border-white/5' : 'bg-white border-slate-50'}`} style={selectedAddons.find(a => a.label === addon.label) ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}05` } : {}}>
-                     <div className="flex flex-col"><span className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-800'}`}>{addon.label}</span><span className="text-[10px] font-black mt-0.5" style={{ color: settings.primaryColor }}>+{settings.currency}{addon.price.toFixed(2)}</span></div>
-                     <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedAddons.find(a => a.label === addon.label) ? 'text-white' : 'border-slate-200 bg-white'}`} style={selectedAddons.find(a => a.label === addon.label) ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>{selectedAddons.find(a => a.label === addon.label) && <CheckIcon className="w-5 h-5" />}</div>
+                   <label key={addon.label} className={`flex items-center justify-between p-3.5 border-2 rounded-xl transition-all cursor-pointer shadow-sm ${selectedAddons.find(a => a.label === addon.label) ? 'border-opacity-100' : isDark ? 'bg-slate-800/30 border-white/5' : 'bg-white border-slate-50'}`} style={selectedAddons.find(a => a.label === addon.label) ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}05` } : {}}>
+                     <div className="flex flex-col"><span className={`font-bold text-xs ${isDark ? 'text-white' : 'text-slate-800'}`}>{addon.label}</span><span className="text-[8px] font-black mt-0.5" style={{ color: settings.primaryColor }}>+{settings.currency}{addon.price.toFixed(2)}</span></div>
+                     <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedAddons.find(a => a.label === addon.label) ? 'text-white' : 'border-slate-200 bg-white'}`} style={selectedAddons.find(a => a.label === addon.label) ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>{selectedAddons.find(a => a.label === addon.label) && <CheckIcon className="w-3.5 h-3.5" />}</div>
                      <input type="checkbox" className="hidden" checked={!!selectedAddons.find(a => a.label === addon.label)} onChange={() => setSelectedAddons(prev => prev.find(a => a.label === addon.label) ? prev.filter(a => a.label !== addon.label) : [...prev, addon])} />
                    </label>
                  ))}
@@ -363,15 +363,15 @@ const ProductDetailView: React.FC<{
         </div>
       </div>
 
-      <div className={`flex-shrink-0 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 border-t rounded-t-[3rem] shadow-[0_-25px_60px_rgba(0,0,0,0.3)] space-y-6 z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50 border-slate-100'}`}>
-          <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-12 h-12 border-2 rounded-xl text-2xl font-black flex items-center justify-center active:scale-90 transition-all shadow-sm ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
-          <span className={`text-3xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
-          <button onClick={() => setQuantity(q => q+1)} className={`w-12 h-12 border-2 rounded-xl text-2xl font-black flex items-center justify-center active:scale-90 transition-all shadow-sm ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
+      <div className={`flex-shrink-0 px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2.5 border-t rounded-t-[2.25rem] shadow-[0_-15px_40px_rgba(0,0,0,0.2)] space-y-2.5 z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <div className={`flex items-center justify-between p-1 rounded-2xl border-2 ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50 border-slate-100'}`}>
+          <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-9 h-9 border-2 rounded-xl text-lg font-black flex items-center justify-center active:scale-90 transition-all shadow-sm ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
+          <span className={`text-lg font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
+          <button onClick={() => setQuantity(q => q+1)} className={`w-9 h-9 border-2 rounded-xl text-lg font-black flex items-center justify-center active:scale-90 transition-all shadow-sm ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
         </div>
-        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-6 rounded-[2rem] text-xl font-black uppercase tracking-tight shadow-xl active:scale-[0.98] transition-all flex items-center justify-between px-8 shadow-sm overflow-hidden" style={{ backgroundColor: settings.primaryColor }}>
-          <span className="whitespace-nowrap flex-shrink-1 overflow-hidden text-ellipsis">Add To Basket</span>
-          <span className="font-oswald text-2xl whitespace-nowrap flex-shrink-0 ml-3">{settings.currency}{totalPrice.toFixed(2)}</span>
+        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-3.5 rounded-2xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-between px-5 shadow-sm overflow-hidden" style={{ backgroundColor: settings.primaryColor }}>
+          <span className="text-[11px] font-black uppercase tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">Add To Basket</span>
+          <span className="font-oswald text-lg whitespace-nowrap flex-shrink-0 ml-3">{settings.currency}{totalPrice.toFixed(2)}</span>
         </button>
       </div>
     </div>
@@ -453,6 +453,7 @@ const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode; onBac
 };
 
 const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; details: UserDetails; total: number; onBack: () => void; onConfirm: () => void; isSubmitting: boolean; }> = ({ settings, cart, details, total, onBack, onConfirm, isSubmitting }) => {
+  const [isSyncing, setIsSyncing] = useState(false);
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
@@ -492,7 +493,6 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
         {activeTab === 'General' && (
           <div className="space-y-6"><div className="space-y-1.5"><label className="text-[8px] font-black uppercase tracking-widest opacity-40 px-1">Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div><div className="space-y-1.5"><label className="text-[8px] font-black uppercase tracking-widest opacity-40 px-1">Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div></div>
         )}
-        {/* Categories/Products tab content scaled similarly... */}
         <p className="text-[10px] opacity-40 text-center pt-8">Manage your menu items and settings above.</p>
       </div>
     </div>
@@ -593,4 +593,3 @@ export default function App() {
     </div>
   );
 }
-
