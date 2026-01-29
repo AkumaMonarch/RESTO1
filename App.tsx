@@ -1,8 +1,8 @@
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
 import { supabase } from './supabase';
-import { GoogleGenAI } from "@google/genai";
 
 /**
  * --- SVG Icons ---
@@ -40,13 +40,6 @@ const TrashIcon = ({ className }: { className?: string }) => (
     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
     <line x1="10" y1="11" x2="10" y2="17"></line>
     <line x1="14" y1="11" x2="14" y2="17"></line>
-  </svg>
-);
-
-const MagicIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-    <path d="M5 3v4M3 5h4M19 17v4M17 19h4"/>
   </svg>
 );
 
@@ -155,7 +148,6 @@ const MenuView: React.FC<{
 }> = ({ settings, onSelectProduct, onGoToCart, onRestart, onAdmin, cartTotal, cartCount }) => {
   const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'RECOMMENDED');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
   const isDark = settings.themeMode === 'dark';
@@ -164,36 +156,6 @@ const MenuView: React.FC<{
     const todayStr = new Date().toISOString().split('T')[0];
     return settings.forceHolidays.includes(todayStr);
   }, [settings.forceHolidays]);
-
-  const handleAiAssistant = async () => {
-    const prompt = window.prompt("What are you craving? (e.g., 'Something spicy with chicken')");
-    if (!prompt) return;
-
-    setIsAiLoading(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `You are an expert food recommendation assistant for '${settings.brandName}'. 
-        Here is the menu: ${JSON.stringify(settings.products.map(p => ({id: p.id, name: p.name, description: p.description})))}. 
-        The user wants: "${prompt}". 
-        Recommend exactly ONE item from the menu that matches best. 
-        Return ONLY the product ID.`,
-      });
-      
-      const recommendedId = response.text?.trim();
-      const product = settings.products.find(p => p.id === recommendedId);
-      if (product) {
-        onSelectProduct(product);
-      } else {
-        alert("I couldn't find a perfect match for that, but feel free to browse our categories!");
-      }
-    } catch (err) {
-      console.error("AI Error:", err);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   const filteredProducts = useMemo(() => {
     let list = settings.products;
@@ -222,9 +184,6 @@ const MenuView: React.FC<{
            </h2>
         </div>
         <div className="flex items-center space-x-2">
-          <button onClick={handleAiAssistant} disabled={isAiLoading} className={`p-2 rounded-lg transition-all active:scale-90 border shadow-sm ${isDark ? 'bg-blue-600/20 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-100 text-blue-600'}`}>
-            {isAiLoading ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div> : <MagicIcon />}
-          </button>
           <button onClick={onAdmin} className={`p-2 rounded-lg transition-all active:scale-90 border shadow-sm ${isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
             <AdminIcon />
           </button>
