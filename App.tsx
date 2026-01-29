@@ -57,7 +57,7 @@ const TrashIcon = ({ className }: { className?: string }) => (
 
 const PlusIcon = ({ className }: { className?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="12" cy="5" x2="12" y2="19"></line>
     <line x1="5" y1="12" x2="19" y2="12"></line>
   </svg>
 );
@@ -144,7 +144,7 @@ const LandingView: React.FC<{ settings: AppSettings; onStart: () => void }> = ({
       <h2 className="text-4xl font-black font-oswald tracking-tight uppercase">Touch to start</h2>
       <p className="text-xl opacity-90 font-medium">Your feast awaits</p>
     </div>
-    <div className="grid grid-cols-2 gap-6 w-full max-w-sm">
+    <div className="grid grid-cols-2 gap-6 w-full max-sm:max-w-xs">
       {settings.categories.slice(0, 4).map((cat, idx) => (
         <div key={cat.id} className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white/20 shadow-2xl transition-transform active:scale-95">
           {cat.backgroundImage ? (
@@ -320,44 +320,54 @@ const ProductDetailView: React.FC<{
         <button onClick={onBack} className={`p-2 rounded-2xl active:bg-opacity-80 flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
         <h2 className={`text-xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Customize</h2>
       </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64 smooth-scroll">
-        <div className="flex flex-col items-center">
-           <div className={`w-72 h-72 rounded-[3rem] flex items-center justify-center p-6 mb-8 shadow-inner overflow-hidden border-2 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-              <img src={product.image} className="w-full h-full object-cover rounded-[2rem] shadow-2xl" loading="eager" />
-           </div>
-           <h3 className={`text-4xl font-black text-center leading-none mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
-           <p className={`text-center font-medium max-w-xs mx-auto text-sm leading-relaxed ${isDark ? 'text-white/50' : 'text-slate-500'}`}>{product.description}</p>
+      
+      <div className="flex-1 relative overflow-hidden">
+        {/* Subtle Vertical Ambient Background Animation (hinting scrollability) */}
+        <div className={`absolute inset-0 bg-animated-vertical pointer-events-none transition-opacity duration-500 ${isDark ? 'opacity-[0.1]' : 'opacity-[0.05]'}`}
+          style={{ backgroundImage: `linear-gradient(180deg, transparent, ${settings.primaryColor}, transparent, ${settings.primaryColor}, transparent)` }}></div>
+        
+        <div className="h-full overflow-y-auto p-6 space-y-8 no-scrollbar pb-64 smooth-scroll relative z-10 mask-edges-vertical">
+          <div className="flex flex-col items-center">
+             <div className={`w-72 h-72 rounded-[3rem] flex items-center justify-center p-6 mb-8 shadow-inner overflow-hidden border-2 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                <img src={product.image} className="w-full h-full object-cover rounded-[2rem] shadow-2xl" loading="eager" />
+             </div>
+             <h3 className={`text-4xl font-black text-center leading-none mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
+             <p className={`text-center font-medium max-w-xs mx-auto text-sm leading-relaxed ${isDark ? 'text-white/50' : 'text-slate-500'}`}>{product.description}</p>
+          </div>
+          
+          {product.sizes.length > 0 && (
+            <section className="space-y-4">
+               <div className="flex justify-between items-center"><h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Select Size</h4><span className="text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider" style={{ color: settings.primaryColor, backgroundColor: `${settings.primaryColor}15` }}>Required</span></div>
+               <div className="grid grid-cols-3 gap-3">
+                 {product.sizes.map(s => (
+                   <button key={s.label} onClick={() => setSelectedSize(s)} 
+                    className={`py-5 rounded-3xl border-2 font-black transition-all flex flex-col items-center shadow-sm ${selectedSize.label === s.label ? 'scale-105 ring-4 ring-opacity-20' : isDark ? 'border-white/5 text-white/30 bg-white/5' : 'border-slate-50 text-slate-400 bg-white'}`} 
+                    style={selectedSize.label === s.label ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}10`, color: settings.primaryColor } : {}}>
+                     <span className="text-sm">{s.label}</span>
+                     <span className="text-[10px] opacity-70 mt-1">+{settings.currency} {s.price.toFixed(2)}</span>
+                   </button>
+                 ))}
+               </div>
+            </section>
+          )}
+          
+          {product.addons.length > 0 && (
+            <section className="space-y-4">
+               <h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Add Extras</h4>
+               <div className="grid grid-cols-1 gap-3 pb-12">
+                 {product.addons.map(addon => (
+                   <label key={addon.label} className={`flex items-center justify-between p-6 border-2 rounded-[2rem] active:bg-opacity-50 transition-all cursor-pointer shadow-sm ${selectedAddons.find(a => a.label === addon.label) ? 'border-opacity-100' : isDark ? 'bg-slate-800/30 border-white/5' : 'bg-white border-slate-50 hover:border-slate-100'}`} style={selectedAddons.find(a => a.label === addon.label) ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}05` } : {}}>
+                     <div className="flex flex-col"><span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{addon.label}</span><span className="text-xs font-black mt-0.5" style={{ color: settings.primaryColor }}>+{settings.currency} {addon.price.toFixed(2)}</span></div>
+                     <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedAddons.find(a => a.label === addon.label) ? 'text-white' : 'border-slate-200 bg-white'}`} style={selectedAddons.find(a => a.label === addon.label) ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>{selectedAddons.find(a => a.label === addon.label) && <CheckIcon className="w-5 h-5" />}</div>
+                     <input type="checkbox" className="hidden" checked={!!selectedAddons.find(a => a.label === addon.label)} onChange={() => setSelectedAddons(prev => prev.find(a => a.label === addon.label) ? prev.filter(a => a.label !== addon.label) : [...prev, addon])} />
+                   </label>
+                 ))}
+               </div>
+            </section>
+          )}
         </div>
-        {product.sizes.length > 0 && (
-          <section className="space-y-4">
-             <div className="flex justify-between items-center"><h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Select Size</h4><span className="text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider" style={{ color: settings.primaryColor, backgroundColor: `${settings.primaryColor}15` }}>Required</span></div>
-             <div className="grid grid-cols-3 gap-3">
-               {product.sizes.map(s => (
-                 <button key={s.label} onClick={() => setSelectedSize(s)} 
-                  className={`py-5 rounded-3xl border-2 font-black transition-all flex flex-col items-center shadow-sm ${selectedSize.label === s.label ? 'scale-105 ring-4 ring-opacity-20' : isDark ? 'border-white/5 text-white/30 bg-white/5' : 'border-slate-50 text-slate-400 bg-white'}`} 
-                  style={selectedSize.label === s.label ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}10`, color: settings.primaryColor } : {}}>
-                   <span className="text-sm">{s.label}</span>
-                   <span className="text-[10px] opacity-70 mt-1">+{settings.currency} {s.price.toFixed(2)}</span>
-                 </button>
-               ))}
-             </div>
-          </section>
-        )}
-        {product.addons.length > 0 && (
-          <section className="space-y-4">
-             <h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Add Extras</h4>
-             <div className="grid grid-cols-1 gap-3 pb-12">
-               {product.addons.map(addon => (
-                 <label key={addon.label} className={`flex items-center justify-between p-6 border-2 rounded-[2rem] active:bg-opacity-50 transition-all cursor-pointer shadow-sm ${selectedAddons.find(a => a.label === addon.label) ? 'border-opacity-100' : isDark ? 'bg-slate-800/30 border-white/5' : 'bg-white border-slate-50 hover:border-slate-100'}`} style={selectedAddons.find(a => a.label === addon.label) ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}05` } : {}}>
-                   <div className="flex flex-col"><span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{addon.label}</span><span className="text-xs font-black mt-0.5" style={{ color: settings.primaryColor }}>+{settings.currency} {addon.price.toFixed(2)}</span></div>
-                   <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedAddons.find(a => a.label === addon.label) ? 'text-white' : 'border-slate-200 bg-white'}`} style={selectedAddons.find(a => a.label === addon.label) ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>{selectedAddons.find(a => a.label === addon.label) && <CheckIcon className="w-5 h-5" />}</div>
-                   <input type="checkbox" className="hidden" checked={!!selectedAddons.find(a => a.label === addon.label)} onChange={() => setSelectedAddons(prev => prev.find(a => a.label === addon.label) ? prev.filter(a => a.label !== addon.label) : [...prev, addon])} />
-                 </label>
-               ))}
-             </div>
-          </section>
-        )}
       </div>
+
       <div className={`flex-shrink-0 px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50 border-slate-100'}`}>
           <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
