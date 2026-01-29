@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,9 +47,33 @@
         .animate-scale-up {
             animation: scale-up 0.2s ease-out forwards;
         }
+        @keyframes bounce-short {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-bounce-short {
+            animation: bounce-short 1s ease-in-out infinite;
+        }
         input, textarea, select {
             user-select: text !important;
             scroll-margin-top: 100px;
+        }
+
+        /* Animated Category Background */
+        @keyframes background-color-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .bg-animated-nav {
+            background-size: 300% 100%;
+            animation: background-color-shift 12s ease-in-out infinite;
+        }
+
+        /* Edge Fading Masks */
+        .mask-edges {
+            -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
     </style>
 <script type="importmap">

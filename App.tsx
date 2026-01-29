@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
@@ -213,17 +212,33 @@ const MenuView: React.FC<{
         </div>
       )}
 
-      <div className="relative flex-shrink-0">
-        <nav {...navScrollProps} className={`border-b overflow-x-auto no-scrollbar py-4 px-4 flex flex-nowrap items-center space-x-3 shadow-sm z-10 touch-pan-x select-none ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-          {settings.categories.map(cat => (
-            <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSearchQuery(''); }} 
-              className={`flex-shrink-0 flex items-center space-x-3 px-6 py-3.5 rounded-2xl transition-all whitespace-nowrap border-2 ${activeCategory === cat.id && !searchQuery ? 'text-white shadow-lg scale-105' : isDark ? 'bg-slate-800/50 border-white/5 text-white/30' : 'bg-slate-50 border-slate-100 text-slate-400'}`} 
-              style={activeCategory === cat.id && !searchQuery ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-xs font-black uppercase tracking-tighter">{cat.label}</span>
-            </button>
-          ))}
-        </nav>
+      {/* Categories Slider Container */}
+      <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
+        {/* Animated Subtle Background Coloring Effect - Higher Opacity in Dark Mode */}
+        <div 
+          className={`absolute inset-0 bg-animated-nav pointer-events-none transition-opacity duration-500 ${isDark ? 'opacity-[0.12]' : 'opacity-[0.06]'}`}
+          style={{ 
+            backgroundImage: `linear-gradient(90deg, transparent, ${settings.primaryColor}, transparent, ${settings.primaryColor}, transparent)` 
+          }}
+        ></div>
+        
+        {/* Scroll Indicators (Subtle Edge Fades) - Matched to Theme Background */}
+        <div className="absolute inset-y-0 left-0 w-12 z-20 pointer-events-none transition-all duration-300" style={{ background: `linear-gradient(to right, ${isDark ? '#1E293B' : '#FFFFFF'}, transparent)` }}></div>
+        <div className="absolute inset-y-0 right-0 w-12 z-20 pointer-events-none transition-all duration-300" style={{ background: `linear-gradient(to left, ${isDark ? '#1E293B' : '#FFFFFF'}, transparent)` }}></div>
+
+        {/* Navigation Wrapper with Mask for Nice Fading Look */}
+        <div className="mask-edges">
+          <nav {...navScrollProps} className={`overflow-x-auto no-scrollbar py-6 px-8 flex flex-nowrap items-center space-x-5 z-10 touch-pan-x select-none`}>
+            {settings.categories.map(cat => (
+              <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSearchQuery(''); }} 
+                className={`flex-shrink-0 flex items-center space-x-3 px-6 py-4 rounded-2xl transition-all whitespace-nowrap border-2 shadow-sm ${activeCategory === cat.id && !searchQuery ? 'text-white shadow-xl scale-105 ring-4 ring-white/10' : isDark ? 'bg-slate-800/80 border-white/5 text-white/40 hover:text-white/60' : 'bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600'}`} 
+                style={activeCategory === cat.id && !searchQuery ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
+                <span className="text-2xl">{cat.icon}</span>
+                <span className="text-xs font-black uppercase tracking-tighter">{cat.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
       <div className={`flex-shrink-0 p-4 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-b'}`}>
@@ -352,7 +367,7 @@ const ProductDetailView: React.FC<{
         )}
       </div>
       <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+        <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50 border-slate-100'}`}>
           <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
           <span className={`text-4xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
           <button onClick={() => setQuantity(q => q+1)} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
@@ -501,6 +516,7 @@ const AdminView: React.FC<{
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const isDark = localSettings.themeMode === 'dark';
 
+  // Define toggleOptionsEdit inside AdminView to fix the compilation error
   const toggleOptionsEdit = (id: string) => {
     setEditingOptionsId(prev => prev === id ? null : id);
   };
