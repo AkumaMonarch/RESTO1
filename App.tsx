@@ -143,16 +143,27 @@ const LandingView: React.FC<{ settings: AppSettings; onStart: () => void }> = ({
       <h2 className="text-4xl font-black font-oswald tracking-tight uppercase">Touch to start</h2>
       <p className="text-xl opacity-90 font-medium">Your feast awaits</p>
     </div>
-    <div className="grid grid-cols-2 gap-4 w-full max-w-sm text-white">
-      {settings.categories.slice(0, 4).map(cat => (
-        <div key={cat.id} className="bg-white/10 p-6 rounded-2xl flex flex-col items-center space-y-2 border border-white/20 backdrop-blur-md">
-          <span className="text-4xl">{cat.icon}</span>
-          <span className="text-[11px] font-black uppercase tracking-widest">{cat.label}</span>
+    <div className="grid grid-cols-2 gap-6 w-full max-w-sm">
+      {settings.categories.slice(0, 4).map((cat, idx) => (
+        <div key={cat.id} className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white/20 shadow-2xl transition-transform active:scale-95">
+          {cat.backgroundImage ? (
+            <div className="absolute inset-0 w-full h-full overflow-hidden">
+              <img 
+                src={cat.backgroundImage} 
+                alt={cat.label} 
+                className="w-full h-full object-cover animate-breathing-hero fade-edges-mask"
+                style={{ animationDelay: `${idx * 1.2}s` }}
+              />
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-white/10 backdrop-blur-md" />
+          )}
+          {/* Labels and icons removed as requested for a cleaner sensation */}
         </div>
       ))}
     </div>
     <div className="flex flex-col items-center animate-bounce mt-8 text-white">
-      <div className="w-14 h-14 rounded-full border-4 border-white/30 flex items-center justify-center backdrop-blur-sm"><span className="text-2xl font-bold">↓</span></div>
+      <div className="w-14 h-14 rounded-full border-4 border-white/30 flex items-center justify-center backdrop-blur-sm shadow-lg"><span className="text-2xl font-bold">↓</span></div>
     </div>
   </div>
 );
@@ -465,7 +476,7 @@ const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSele
       </header>
       <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center space-y-6 no-scrollbar">
          <h3 className={`text-center font-black uppercase tracking-widest text-xs mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Choose your service</h3>
-         <div className="grid grid-cols-1 gap-4 w-full max-w-sm">
+         <div className="grid grid-cols-1 gap-4 w-full max-sm:max-w-sm">
             <button onClick={() => onSelectMode('EAT_IN')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
                <span className="text-6xl">🍽️</span>
                <span className="text-xl font-black uppercase tracking-tight">Eat In</span>

@@ -5,6 +5,7 @@ export interface Category {
   id: CategoryType;
   label: string;
   icon: string;
+  backgroundImage?: string;
 }
 
 export interface SizeOption {

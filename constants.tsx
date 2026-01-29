@@ -8,10 +8,30 @@ export const THEME_PRESETS = [
 ];
 
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'RECOMMANDED', label: 'RECOMMENDS', icon: '🔥' },
-  { id: 'BURGERS', label: 'BURGERS', icon: '🍔' },
-  { id: 'BUCKETS', label: 'BUCKETS', icon: '🍗' },
-  { id: 'MEALS', label: 'BOX MEALS', icon: '🍱' },
+  { 
+    id: 'RECOMMANDED', 
+    label: 'RECOMMENDS', 
+    icon: '🔥',
+    backgroundImage: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80'
+  },
+  { 
+    id: 'BURGERS', 
+    label: 'BURGERS', 
+    icon: '🍔',
+    backgroundImage: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80'
+  },
+  { 
+    id: 'BUCKETS', 
+    label: 'BUCKETS', 
+    icon: '🍗',
+    backgroundImage: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80'
+  },
+  { 
+    id: 'MEALS', 
+    label: 'BOX MEALS', 
+    icon: '🍱',
+    backgroundImage: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'
+  },
   { id: 'SIDES', label: 'SIDES', icon: '🍟' },
   { id: 'DRINKS', label: 'DRINKS', icon: '🥤' },
   { id: 'DESSERTS', label: 'DESSERTS', icon: '🍦' },
