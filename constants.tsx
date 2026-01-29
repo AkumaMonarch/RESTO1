@@ -9,7 +9,7 @@ export const THEME_PRESETS = [
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { 
-    id: 'RECOMMANDED', 
+    id: 'RECOMMENDED', 
     label: 'RECOMMENDS', 
     icon: '🔥',
     backgroundImage: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80'

@@ -177,7 +177,7 @@ const MenuView: React.FC<{
   cartTotal: number;
   cartCount: number;
 }> = ({ settings, onSelectProduct, onGoToCart, onRestart, onAdmin, cartTotal, cartCount }) => {
-  const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'BURGERS');
+  const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'RECOMMENDED');
   const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
@@ -194,16 +194,25 @@ const MenuView: React.FC<{
       const q = searchQuery.toLowerCase();
       return list.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
     }
-    return activeCategory === 'RECOMMANDED' ? list.filter(p => p.isBestseller) : list.filter(p => p.category === activeCategory);
+    // "RECOMMENDS" tab displays all products marked as bestseller by owner
+    if (activeCategory === 'RECOMMENDED') {
+      return list.filter(p => p.isBestseller);
+    }
+    return list.filter(p => p.category === activeCategory);
   }, [activeCategory, settings.products, searchQuery]);
+
+  const activeCategoryLabel = useMemo(() => {
+    const found = settings.categories.find(c => c.id === activeCategory);
+    return found ? found.label : activeCategory;
+  }, [activeCategory, settings.categories]);
 
   return (
     <div className={`h-full flex flex-col overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
       <header className={`flex-shrink-0 flex items-center justify-between p-4 border-b shadow-sm z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-3">
            <div className="px-3 py-1.5 text-white font-black italic rounded-lg text-sm shadow-sm transition-transform" style={{ backgroundColor: settings.primaryColor }}>{settings.brandName}</div>
-           <h2 className={`text-xl font-bold font-oswald tracking-tight uppercase overflow-hidden whitespace-nowrap text-ellipsis max-w-[120px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-             {searchQuery.trim() ? 'Search' : activeCategory}
+           <h2 className={`text-xl font-bold font-oswald tracking-tight uppercase overflow-hidden whitespace-nowrap text-ellipsis max-w-[140px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
+             {searchQuery.trim() ? 'Search' : activeCategoryLabel}
            </h2>
         </div>
         <div className="flex items-center space-x-2">
@@ -297,9 +306,9 @@ const MenuView: React.FC<{
            <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-sm cursor-pointer">
             <div className="flex items-center space-x-4">
                <div className="bg-white text-[#86BC25] w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-lg animate-bounce-short">{cartCount}</div>
-               <span className="text-lg uppercase tracking-tight">Basket</span>
+               <span className="text-lg uppercase tracking-tight whitespace-nowrap">Basket</span>
             </div>
-            <span className="text-2xl font-oswald tracking-wide">{settings.currency} {cartTotal.toFixed(2)}</span>
+            <span className="text-2xl font-oswald tracking-wide whitespace-nowrap">{settings.currency} {cartTotal.toFixed(2)}</span>
           </div>
         </div>
       )}
@@ -384,8 +393,9 @@ const ProductDetailView: React.FC<{
           <span className={`text-4xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
           <button onClick={() => setQuantity(q => q+1)} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
         </div>
-        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase tracking-tight shadow-2xl active:scale-[0.98] transition-all flex items-center justify-between px-10 shadow-sm" style={{ backgroundColor: settings.primaryColor }}>
-          <span>Add To Basket</span><span className="font-oswald text-3xl">{settings.currency} {totalPrice.toFixed(2)}</span>
+        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-6 rounded-[2rem] text-xl font-black uppercase tracking-tight shadow-2xl active:scale-[0.98] transition-all flex items-center justify-between px-8 shadow-sm overflow-hidden" style={{ backgroundColor: settings.primaryColor }}>
+          <span className="whitespace-nowrap flex-shrink-1 overflow-hidden text-ellipsis">Add To Basket</span>
+          <span className="font-oswald text-2xl whitespace-nowrap flex-shrink-0 ml-4">{settings.currency} {totalPrice.toFixed(2)}</span>
         </button>
       </div>
     </div>
@@ -408,7 +418,7 @@ const CartView: React.FC<{
            <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
            <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2>
         </div>
-        <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-white border border-red-500 px-4 py-2.5 rounded-full active:bg-red-50 transition-colors shadow-sm">CLEAR ALL</button>
+        <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-white border border-red-500 px-4 py-2.5 rounded-full active:bg-red-50 transition-colors shadow-sm whitespace-nowrap">CLEAR ALL</button>
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64">
         {items.map((item, idx) => {
@@ -418,22 +428,22 @@ const CartView: React.FC<{
               <div className={`w-24 h-24 rounded-3xl p-3 shrink-0 shadow-inner border ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-50'}`}>
                 <img src={item.image} className="w-full h-full object-cover rounded-xl" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 overflow-hidden">
                  <div className="flex justify-between items-start mb-1">
-                   <div>
-                     <h3 className={`font-black text-lg leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</h3>
-                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{item.selectedSize.label}</p>
+                   <div className="overflow-hidden">
+                     <h3 className={`font-black text-lg leading-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</h3>
+                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5 truncate">{item.selectedSize.label}</p>
                    </div>
-                   <button onClick={() => onUpdateQuantity(item.id, -item.quantity)} className={`font-black text-xs w-8 h-8 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-white/30 hover:bg-white/10' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>✕</button>
+                   <button onClick={() => onUpdateQuantity(item.id, -item.quantity)} className={`font-black text-xs w-8 h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 ml-2 ${isDark ? 'bg-white/5 text-white/30 hover:bg-white/10' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>✕</button>
                  </div>
                  {item.selectedAddons.length > 0 && (
                    <div className="flex flex-wrap gap-1 mt-2 mb-3">
-                     {item.selectedAddons.map(a => <span key={a.label} className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>{a.label}</span>)}
+                     {item.selectedAddons.map(a => <span key={a.label} className={`text-[9px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>{a.label}</span>)}
                    </div>
                  )}
                  <div className="flex items-center justify-between mt-auto">
-                    <span className={`font-black text-xl font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {(itemBasePrice * item.quantity).toFixed(2)}</span>
-                    <div className={`flex items-center justify-between rounded-2xl px-2 py-1.5 border shadow-sm ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                    <span className={`font-black text-xl font-oswald whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {(itemBasePrice * item.quantity).toFixed(2)}</span>
+                    <div className={`flex items-center justify-between rounded-2xl px-2 py-1.5 border shadow-sm flex-shrink-0 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-200'}`}>
                       <button onClick={() => onUpdateQuantity(item.id, -1)} className={`w-10 h-10 font-black text-2xl active:scale-90 transition-all flex items-center justify-center rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
                       <span className={`font-black tabular-nums min-w-[32px] text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.quantity}</span>
                       <button onClick={() => onUpdateQuantity(item.id, 1)} className={`w-10 h-10 font-black text-2xl active:scale-90 transition-all flex items-center justify-center rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
@@ -454,12 +464,12 @@ const CartView: React.FC<{
       {items.length > 0 && (
         <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
           <div className="space-y-4">
-            <div className="flex justify-between text-slate-400 font-black uppercase text-[10px] tracking-widest"><span>Subtotal</span><span>{settings.currency} {total.toFixed(2)}</span></div>
+            <div className="flex justify-between text-slate-400 font-black uppercase text-[10px] tracking-widest"><span>Subtotal</span><span className="whitespace-nowrap">{settings.currency} {total.toFixed(2)}</span></div>
             <div className={`flex justify-between text-4xl font-black pt-6 border-t-2 ${isDark ? 'border-white/5 text-white' : 'border-slate-50 text-slate-900'}`}>
-               <span className="font-oswald">TOTAL</span><span className="font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
+               <span className="font-oswald">TOTAL</span><span className="font-oswald whitespace-nowrap" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
             </div>
           </div>
-          <button onClick={onCheckout} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm">Check Out</button>
+          <button onClick={onCheckout} className="w-full text-white py-6 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden">Check Out</button>
         </div>
       )}
     </div>
@@ -479,15 +489,15 @@ const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSele
          <div className="grid grid-cols-1 gap-4 w-full max-sm:max-w-sm">
             <button onClick={() => onSelectMode('EAT_IN')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
                <span className="text-6xl">🍽️</span>
-               <span className="text-xl font-black uppercase tracking-tight">Eat In</span>
+               <span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Eat In</span>
             </button>
             <button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
                <span className="text-6xl">🥡</span>
-               <span className="text-xl font-black uppercase tracking-tight">Take Away</span>
+               <span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Take Away</span>
             </button>
             <button onClick={() => onSelectMode('DELIVERY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
                <span className="text-6xl">🚚</span>
-               <span className="text-xl font-black uppercase tracking-tight">Delivery</span>
+               <span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Delivery</span>
             </button>
          </div>
       </div>
@@ -536,7 +546,7 @@ const UserDetailsView: React.FC<{
         )}
       </form>
       <div className={`p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1) ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
-        <button onClick={handleSubmit} className="w-full text-white py-6 rounded-3xl text-xl font-black uppercase shadow-xl transition-all active:scale-[0.98] bg-blue-600 disabled:opacity-50" disabled={!details.name || !details.phone || (mode === 'DELIVERY' && !details.address)}>Continue</button>
+        <button onClick={handleSubmit} className="w-full text-white py-6 rounded-3xl text-xl font-black uppercase shadow-xl transition-all active:scale-[0.98] bg-blue-600 disabled:opacity-50 whitespace-nowrap" disabled={!details.name || !details.phone || (mode === 'DELIVERY' && !details.address)}>Continue</button>
       </div>
     </div>
   );
@@ -562,12 +572,12 @@ const FinalSummaryView: React.FC<{
           <h3 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Your Details</h3>
           <div className={`p-6 rounded-[2.5rem] space-y-4 border-2 ${isDark ? 'bg-slate-800/50 border-white/5' : 'bg-white border-slate-50 shadow-sm'}`}>
             <div className="flex items-center gap-4">
-              <span className="text-3xl">👤</span>
-              <div><p className={`font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.name}</p><p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{details.phone}</p></div>
+              <span className="text-3xl flex-shrink-0">👤</span>
+              <div className="overflow-hidden"><p className={`font-black truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.name}</p><p className={`text-xs truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{details.phone}</p></div>
             </div>
             <div className="flex items-center gap-4 border-t pt-4 mt-4 border-slate-100/10">
-              <span className="text-3xl">{details.diningMode === 'DELIVERY' ? '🚚' : details.diningMode === 'TAKE_AWAY' ? '🥡' : '🍽️'}</span>
-              <div><p className={`font-black uppercase text-xs ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.diningMode.replace('_', ' ')}</p>{details.address && <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'} mt-1`}>{details.address}</p>}</div>
+              <span className="text-3xl flex-shrink-0">{details.diningMode === 'DELIVERY' ? '🚚' : details.diningMode === 'TAKE_AWAY' ? '🥡' : '🍽️'}</span>
+              <div className="overflow-hidden"><p className={`font-black uppercase text-xs truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.diningMode.replace('_', ' ')}</p>{details.address && <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'} mt-1`}>{details.address}</p>}</div>
             </div>
           </div>
         </section>
@@ -577,14 +587,14 @@ const FinalSummaryView: React.FC<{
           <div className="space-y-3">
             {cart.map((item, idx) => (
               <div key={idx} className={`p-4 rounded-3xl flex justify-between items-center ${isDark ? 'bg-slate-800/30' : 'bg-white shadow-sm'}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900'}`}>{item.quantity}x</span>
-                  <div>
-                    <p className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">{item.selectedSize.label}</p>
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 ${isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900'}`}>{item.quantity}x</span>
+                  <div className="overflow-hidden">
+                    <p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase truncate">{item.selectedSize.label}</p>
                   </div>
                 </div>
-                <p className={`font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {((item.price + item.selectedSize.price + item.selectedAddons.reduce((s,a) => s + a.price, 0)) * item.quantity).toFixed(2)}</p>
+                <p className={`font-black font-oswald flex-shrink-0 ml-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {((item.price + item.selectedSize.price + item.selectedAddons.reduce((s,a) => s + a.price, 0)) * item.quantity).toFixed(2)}</p>
               </div>
             ))}
           </div>
@@ -593,9 +603,9 @@ const FinalSummaryView: React.FC<{
       <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex justify-between items-end">
           <span className="text-slate-400 font-black uppercase text-xs">Grand Total</span>
-          <span className="text-4xl font-black font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
+          <span className="text-4xl font-black font-oswald whitespace-nowrap" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
         </div>
-        <button onClick={onConfirm} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm">Place Order Now</button>
+        <button onClick={onConfirm} className="w-full text-white py-6 rounded-[2rem] text-xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden">Place Order Now</button>
       </div>
     </div>
   );
@@ -619,7 +629,7 @@ const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => voi
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p>
         <p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p>
       </div>
-      <button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl hover:scale-105 active:scale-95 transition-all">Back to Home</button>
+      <button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl hover:scale-105 active:scale-95 transition-all whitespace-nowrap">Back to Home</button>
     </div>
   );
 };
@@ -807,8 +817,26 @@ const AdminView: React.FC<{
                         <input type="number" className={`${inputStyles} pl-12`} value={prod.price} onChange={e => { const next = [...localSettings.products]; next[globalIdx].price = parseFloat(e.target.value) || 0; setLocalSettings({...localSettings, products: next}); }} />
                       </div>
                       <select className={inputStyles} value={prod.category} onChange={e => { const next = [...localSettings.products]; next[globalIdx].category = e.target.value; setLocalSettings({...localSettings, products: next}); }}>
-                        {localSettings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                        {localSettings.categories.filter(c => c.id !== 'RECOMMENDED').map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                       </select>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl border border-white/5">
+                      <label className="flex items-center gap-3 cursor-pointer select-none w-full">
+                        <div className="relative flex items-center">
+                          <input 
+                            type="checkbox" 
+                            className="w-6 h-6 rounded-lg accent-amber-400 cursor-pointer"
+                            checked={!!prod.isBestseller} 
+                            onChange={e => { 
+                              const next = [...localSettings.products]; 
+                              next[globalIdx].isBestseller = e.target.checked; 
+                              setLocalSettings({...localSettings, products: next}); 
+                            }} 
+                          />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-tight text-slate-400">Recommend to Customers</span>
+                      </label>
                     </div>
 
                     <div className="flex gap-3">
