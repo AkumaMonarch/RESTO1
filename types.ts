@@ -1,3 +1,4 @@
+
 export type CategoryType = string;
 
 export interface Category {
@@ -61,7 +62,6 @@ export interface UserDetails {
   phone: string;
   address: string;
   diningMode: DiningMode;
-  collectionTime: string;
 }
 
 export enum AppView {
