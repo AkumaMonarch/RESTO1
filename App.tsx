@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay } from './types';
+import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
 
 /**
@@ -454,27 +455,136 @@ const CartView: React.FC<{
   );
 };
 
-// --- New Checkout View ---
-const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onFinalize: (method: 'EAT_IN' | 'TAKE_AWAY') => void }> = ({ settings, onBack, onFinalize }) => {
+const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSelectMode: (method: DiningMode) => void }> = ({ settings, onBack, onSelectMode }) => {
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
       <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
          <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
-         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Dining Mode</h2>
+         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2>
       </header>
-      <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8">
-         <h3 className={`text-center font-black uppercase tracking-widest text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Where will you enjoy your food?</h3>
-         <div className="grid grid-cols-1 gap-6 w-full max-w-sm">
-            <button onClick={() => onFinalize('EAT_IN')} className={`p-10 rounded-[3rem] border-4 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
-               <span className="text-7xl">🍽️</span>
-               <span className="text-2xl font-black uppercase tracking-tight">Eat In</span>
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center space-y-6 no-scrollbar">
+         <h3 className={`text-center font-black uppercase tracking-widest text-xs mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Choose your service</h3>
+         <div className="grid grid-cols-1 gap-4 w-full max-w-sm">
+            <button onClick={() => onSelectMode('EAT_IN')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+               <span className="text-6xl">🍽️</span>
+               <span className="text-xl font-black uppercase tracking-tight">Eat In</span>
             </button>
-            <button onClick={() => onFinalize('TAKE_AWAY')} className={`p-10 rounded-[3rem] border-4 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
-               <span className="text-7xl">🥡</span>
-               <span className="text-2xl font-black uppercase tracking-tight">Take Away</span>
+            <button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+               <span className="text-6xl">🥡</span>
+               <span className="text-xl font-black uppercase tracking-tight">Take Away</span>
+            </button>
+            <button onClick={() => onSelectMode('DELIVERY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+               <span className="text-6xl">🚚</span>
+               <span className="text-xl font-black uppercase tracking-tight">Delivery</span>
             </button>
          </div>
+      </div>
+    </div>
+  );
+};
+
+const UserDetailsView: React.FC<{ 
+  settings: AppSettings; 
+  mode: DiningMode; 
+  onBack: () => void; 
+  onNext: (details: UserDetails) => void;
+  initialDetails: UserDetails;
+}> = ({ settings, mode, onBack, onNext, initialDetails }) => {
+  const [details, setDetails] = useState<UserDetails>(initialDetails);
+  const isDark = settings.themeMode === 'dark';
+
+  const inputClass = `w-full p-6 rounded-3xl border-2 font-bold transition-all outline-none ${isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-600'}`;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!details.name || !details.phone || (mode === 'DELIVERY' && !details.address)) return;
+    onNext(details);
+  };
+
+  return (
+    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
+      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+         <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
+         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Details</h2>
+      </header>
+      <form onSubmit={handleSubmit} className="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar">
+        <div className="space-y-2">
+          <label className={`text-[10px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Full Name</label>
+          <input required type="text" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Your Name" className={inputClass} />
+        </div>
+        <div className="space-y-2">
+          <label className={`text-[10px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Mobile Number</label>
+          <input required type="tel" value={details.phone} onChange={e => setDetails({...details, phone: e.target.value})} placeholder="+00 000 000 000" className={inputClass} />
+        </div>
+        {mode === 'DELIVERY' && (
+          <div className="space-y-2 animate-scale-up">
+            <label className={`text-[10px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Delivery Address</label>
+            <textarea required rows={3} value={details.address} onChange={e => setDetails({...details, address: e.target.value})} placeholder="House, Street, Area..." className={`${inputClass} resize-none`} />
+          </div>
+        )}
+      </form>
+      <div className={`p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1) ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
+        <button onClick={handleSubmit} className="w-full text-white py-6 rounded-3xl text-xl font-black uppercase shadow-xl transition-all active:scale-[0.98] bg-blue-600 disabled:opacity-50" disabled={!details.name || !details.phone || (mode === 'DELIVERY' && !details.address)}>Continue</button>
+      </div>
+    </div>
+  );
+};
+
+const FinalSummaryView: React.FC<{ 
+  settings: AppSettings; 
+  cart: CartItem[]; 
+  details: UserDetails; 
+  total: number;
+  onBack: () => void; 
+  onConfirm: () => void; 
+}> = ({ settings, cart, details, total, onBack, onConfirm }) => {
+  const isDark = settings.themeMode === 'dark';
+  return (
+    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
+      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+         <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
+         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review Order</h2>
+      </header>
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64">
+        <section className="space-y-4">
+          <h3 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Your Details</h3>
+          <div className={`p-6 rounded-[2.5rem] space-y-4 border-2 ${isDark ? 'bg-slate-800/50 border-white/5' : 'bg-white border-slate-50 shadow-sm'}`}>
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">👤</span>
+              <div><p className={`font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.name}</p><p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{details.phone}</p></div>
+            </div>
+            <div className="flex items-center gap-4 border-t pt-4 mt-4 border-slate-100/10">
+              <span className="text-3xl">{details.diningMode === 'DELIVERY' ? '🚚' : details.diningMode === 'TAKE_AWAY' ? '🥡' : '🍽️'}</span>
+              <div><p className={`font-black uppercase text-xs ${isDark ? 'text-white' : 'text-slate-900'}`}>{details.diningMode.replace('_', ' ')}</p>{details.address && <p className={`text-xs ${isDark ? 'text-white/40' : 'text-slate-500'} mt-1`}>{details.address}</p>}</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h3 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Items Summary</h3>
+          <div className="space-y-3">
+            {cart.map((item, idx) => (
+              <div key={idx} className={`p-4 rounded-3xl flex justify-between items-center ${isDark ? 'bg-slate-800/30' : 'bg-white shadow-sm'}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900'}`}>{item.quantity}x</span>
+                  <div>
+                    <p className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">{item.selectedSize.label}</p>
+                  </div>
+                </div>
+                <p className={`font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {((item.price + item.selectedSize.price + item.selectedAddons.reduce((s,a) => s + a.price, 0)) * item.quantity).toFixed(2)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+      <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <div className="flex justify-between items-end">
+          <span className="text-slate-400 font-black uppercase text-xs">Grand Total</span>
+          <span className="text-4xl font-black font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
+        </div>
+        <button onClick={onConfirm} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-[0_15px_40px_-10px_rgba(134,188,37,0.4)]">Place Order Now</button>
       </div>
     </div>
   );
@@ -516,7 +626,6 @@ const AdminView: React.FC<{
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const isDark = localSettings.themeMode === 'dark';
 
-  // Define toggleOptionsEdit inside AdminView to fix the compilation error
   const toggleOptionsEdit = (id: string) => {
     setEditingOptionsId(prev => prev === id ? null : id);
   };
@@ -748,6 +857,12 @@ export default function App() {
   const [view, setView] = useState<AppView>(AppView.LANDING);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [userDetails, setUserDetails] = useState<UserDetails>({
+    name: '',
+    phone: '',
+    address: '',
+    diningMode: 'EAT_IN'
+  });
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -784,18 +899,25 @@ export default function App() {
     });
   }, []);
 
-  const handleCheckout = () => {
-    setView(AppView.CHECKOUT);
+  const handleModeSelect = (mode: DiningMode) => {
+    setUserDetails(prev => ({ ...prev, diningMode: mode }));
+    setView(AppView.USER_DETAILS);
   };
 
-  const handleFinalizeOrder = (method: 'EAT_IN' | 'TAKE_AWAY') => {
-    // In a real app, this would send data (method + cart) to POS server
+  const handleUserDetailsSubmit = (details: UserDetails) => {
+    setUserDetails(details);
+    setView(AppView.FINAL_SUMMARY);
+  };
+
+  const handleFinalConfirm = () => {
+    // In a real app, this would send data to POS server
     setView(AppView.ORDER_CONFIRMED);
-    showToast(`Order #${Math.floor(Math.random()*100)} submitted!`);
+    showToast(`Order confirmed for ${userDetails.name}!`);
   };
 
   const restartApp = useCallback(() => {
     setCart([]);
+    setUserDetails({ name: '', phone: '', address: '', diningMode: 'EAT_IN' });
     setView(AppView.LANDING);
   }, []);
 
@@ -818,11 +940,19 @@ export default function App() {
       )}
       
       {view === AppView.CART && (
-        <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={handleCheckout} />
+        <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.CHECKOUT)} />
       )}
 
       {view === AppView.CHECKOUT && (
-        <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onFinalize={handleFinalizeOrder} />
+        <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onSelectMode={handleModeSelect} />
+      )}
+
+      {view === AppView.USER_DETAILS && (
+        <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CHECKOUT)} onNext={handleUserDetailsSubmit} initialDetails={userDetails} />
+      )}
+
+      {view === AppView.FINAL_SUMMARY && (
+        <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleFinalConfirm} />
       )}
 
       {view === AppView.ORDER_CONFIRMED && (

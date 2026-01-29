@@ -54,12 +54,13 @@ export interface CartItem extends Product {
   selectedAddons: AddonOption[];
 }
 
+export type DiningMode = 'EAT_IN' | 'TAKE_AWAY' | 'DELIVERY';
+
 export interface UserDetails {
   name: string;
   phone: string;
   address: string;
-  cashTendered: number;
-  requestedTime: string;
+  diningMode: DiningMode;
 }
 
 export enum AppView {
