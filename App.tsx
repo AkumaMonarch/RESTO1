@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
-import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
+import { DEFAULT_SETTINGS } from './constants';
 import { supabase } from './supabase';
 import { GoogleGenAI } from "@google/genai";
 
@@ -172,13 +173,10 @@ const MenuView: React.FC<{
     setIsAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const menuData = JSON.stringify(settings.products.map(p => ({id: p.id, name: p.name, description: p.description})));
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `You are an expert food recommendation assistant for '${settings.brandName}'. 
-        Here is the menu: ${JSON.stringify(settings.products.map(p => ({id: p.id, name: p.name, description: p.description})))}. 
-        The user wants: "${prompt}". 
-        Recommend exactly ONE item from the menu that matches best. 
-        Return ONLY the product ID.`,
+        contents: `Recommend exactly ONE product ID from this menu: ${menuData}. User wants: "${prompt}". Return ONLY the ID.`,
       });
       
       const recommendedId = response.text?.trim();
@@ -186,7 +184,7 @@ const MenuView: React.FC<{
       if (product) {
         onSelectProduct(product);
       } else {
-        alert("I couldn't find a perfect match for that, but feel free to browse our categories!");
+        alert("I couldn't find a perfect match, but feel free to browse!");
       }
     } catch (err) {
       console.error("AI Error:", err);
@@ -241,7 +239,6 @@ const MenuView: React.FC<{
         </div>
       )}
 
-      {/* Horizontal Category Nav - Compact */}
       <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
         <div className="scroll-shimmer-h"></div>
         <div className="mask-edges">
@@ -386,9 +383,7 @@ const OrderConfirmedView: React.FC<{ settings: AppSettings; orderNumber: number;
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col items-center justify-center p-8 text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A] text-white' : 'bg-white text-slate-900'}`}>
-      <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center text-5xl animate-bounce shadow-xl">
-        ✅
-      </div>
+      <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center text-5xl animate-bounce shadow-xl">✅</div>
       <div className="space-y-2">
         <h2 className="text-3xl font-black font-oswald uppercase tracking-tight">Order Placed!</h2>
         <p className="text-sm opacity-60 font-medium">Thank you for choosing {settings.brandName}</p>
@@ -432,26 +427,17 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
     }));
   };
 
-  const addHoliday = (date: string) => {
-    if (!date) return;
-    setLocalSettings(prev => ({ ...prev, forceHolidays: Array.from(new Set([...prev.forceHolidays, date])) }));
-  };
-
-  const removeHoliday = (date: string) => {
-    setLocalSettings(prev => ({ ...prev, forceHolidays: prev.forceHolidays.filter(d => d !== date) }));
-  };
-
   const addCategory = () => {
     const id = `CAT_${Date.now()}`;
     setLocalSettings(prev => ({ ...prev, categories: [...prev.categories, { id, label: 'New Category', icon: '📦' }] }));
   };
 
-  const removeCategory = (id: string) => {
-    setLocalSettings(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== id), products: prev.products.filter(p => p.category !== id) }));
-  };
-
   const updateCategory = (id: string, field: keyof Category, val: string) => {
     setLocalSettings(prev => ({ ...prev, categories: prev.categories.map(c => c.id === id ? { ...c, [field]: val } : c) }));
+  };
+
+  const removeCategory = (id: string) => {
+    setLocalSettings(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== id), products: prev.products.filter(p => p.category !== id) }));
   };
 
   const addProduct = () => {
@@ -459,17 +445,17 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
     const newProd: Product = {
       id, name: 'New Item', price: 0, category: localSettings.categories[0]?.id || 'BURGERS', 
       image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-      description: 'Product description goes here.', sizes: [], addons: []
+      description: 'Product description.', sizes: [], addons: []
     };
     setLocalSettings(prev => ({ ...prev, products: [newProd, ...prev.products] }));
   };
 
-  const removeProduct = (id: string) => {
-    setLocalSettings(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) }));
-  };
-
   const updateProduct = (id: string, field: keyof Product, val: any) => {
     setLocalSettings(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) }));
+  };
+
+  const removeProduct = (id: string) => {
+    setLocalSettings(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -484,27 +470,22 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
     }
   };
 
-  const toggleAddOnsExpansion = (id: string) => {
-    setExpandedAddOns(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
-      {/* Hidden Inputs for Media Capture */}
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={camInputRef} onChange={handleFileChange} />
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
 
       <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center space-x-2">
           <button onClick={onBack} className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}><BackIcon /></button>
-          <h2 className="font-black text-lg font-oswald uppercase tracking-tight">Admin Panel</h2>
+          <h2 className="font-black text-lg font-oswald uppercase tracking-tight">Admin</h2>
         </div>
-        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Save</button>
+        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">Save</button>
       </header>
 
       <div className={`flex-shrink-0 flex border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
         {(['General', 'Categories', 'Products'] as const).map(t => (
-          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
+          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
             {t}
             {activeTab === t && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-blue-500 rounded-t-full"></div>}
           </button>
@@ -513,241 +494,95 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
         {activeTab === 'General' && (
-          <div className="space-y-8 animate-scale-up">
+          <div className="space-y-6">
             <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Store Profile</h3>
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">General Settings</h3>
               <div className={cardStyles}>
                 <div className="space-y-4">
                   <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
-                  <div><label className={labelStyles}>Currency Symbol</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
+                  <div><label className={labelStyles}>Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
                 </div>
               </div>
             </section>
-
             <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Operating Hours</h3>
-              <div className="space-y-3">
-                {localSettings.workingHours.map(wh => (
-                  <div key={wh.day} className={cardStyles}>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-black text-[11px] uppercase tracking-wide">{wh.day}</span>
-                      <button onClick={() => toggleDay(wh.day)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${wh.isOpen ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : isDark ? 'bg-white/5 text-white/30' : 'bg-slate-100 text-slate-400'}`}>
-                        {wh.isOpen ? 'Open' : 'Closed'}
-                      </button>
-                    </div>
-                    {wh.isOpen && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><label className={labelStyles}>Open</label><input type="time" value={wh.openTime} onChange={e => updateTime(wh.day, 'openTime', e.target.value)} className={inputStyles} /></div>
-                        <div><label className={labelStyles}>Close</label><input type="time" value={wh.closeTime} onChange={e => updateTime(wh.day, 'closeTime', e.target.value)} className={inputStyles} /></div>
-                      </div>
-                    )}
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Working Hours</h3>
+              {localSettings.workingHours.map(wh => (
+                <div key={wh.day} className={cardStyles}>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-black text-[11px] uppercase">{wh.day}</span>
+                    <button onClick={() => toggleDay(wh.day)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase ${wh.isOpen ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400'}`}>{wh.isOpen ? 'Open' : 'Closed'}</button>
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Public Holidays</h3>
-              <div className={cardStyles}>
-                <div className="flex gap-2 mb-4">
-                  <input type="date" className={inputStyles} id="new-holiday" />
-                  <button onClick={() => {
-                    const el = document.getElementById('new-holiday') as HTMLInputElement;
-                    addHoliday(el.value);
-                    el.value = '';
-                  }} className="bg-slate-900 text-white px-5 rounded-xl text-xl font-bold active:scale-95 transition-all shadow-lg">+</button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {localSettings.forceHolidays.map(d => (
-                    <div key={d} className={`px-4 py-2 rounded-xl text-[10px] font-bold flex items-center gap-3 border ${isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
-                      {d} <button onClick={() => removeHoliday(d)} className="font-black text-sm hover:opacity-70">✕</button>
+                  {wh.isOpen && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className={labelStyles}>Open</label><input type="time" value={wh.openTime} onChange={e => updateTime(wh.day, 'openTime', e.target.value)} className={inputStyles} /></div>
+                      <div><label className={labelStyles}>Close</label><input type="time" value={wh.closeTime} onChange={e => updateTime(wh.day, 'closeTime', e.target.value)} className={inputStyles} /></div>
                     </div>
-                  ))}
-                  {localSettings.forceHolidays.length === 0 && <p className="text-[10px] opacity-40 px-1 py-2 italic">No holidays scheduled.</p>}
+                  )}
                 </div>
-              </div>
+              ))}
             </section>
           </div>
         )}
 
         {activeTab === 'Categories' && (
-          <div className="space-y-6 animate-scale-up">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Manage Categories</h3>
-              <button onClick={addCategory} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
-            </div>
-            <div className="space-y-3">
-              {localSettings.categories.map(cat => (
-                <div key={cat.id} className={cardStyles}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 shrink-0">
-                      <label className={labelStyles}>Icon</label>
-                      <input className={`${inputStyles} text-center text-lg`} value={cat.icon} onChange={e => updateCategory(cat.id, 'icon', e.target.value)} />
-                    </div>
-                    <div className="flex-1">
-                      <label className={labelStyles}>Category Label</label>
-                      <input className={inputStyles} value={cat.label} onChange={e => updateCategory(cat.id, 'label', e.target.value)} />
-                    </div>
-                    <button onClick={() => removeCategory(cat.id)} className={`${dangerButtonStyles} w-12 h-11 self-end`}>
-                      <TrashIcon />
-                    </button>
-                  </div>
+          <div className="space-y-4">
+            <button onClick={addCategory} className="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-[10px] uppercase">Add Category</button>
+            {localSettings.categories.map(cat => (
+              <div key={cat.id} className={cardStyles}>
+                <div className="flex items-center gap-3">
+                  <input className="w-12 text-center border-2 p-2 rounded-lg" value={cat.icon} onChange={e => updateCategory(cat.id, 'icon', e.target.value)} />
+                  <input className="flex-1 border-2 p-2 rounded-lg" value={cat.label} onChange={e => updateCategory(cat.id, 'label', e.target.value)} />
+                  <button onClick={() => removeCategory(cat.id)} className="p-2 text-red-500"><TrashIcon /></button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'Products' && (
-          <div className="space-y-6 animate-scale-up">
-            <div className="flex flex-col gap-4 px-1">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
-                <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
-              </div>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <button onClick={addProduct} className="w-full bg-blue-600 text-white py-3 rounded-xl font-black text-[10px] uppercase">Add Item</button>
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 pointer-events-none">
-                  <SearchIcon />
-                </div>
-                <input 
-                  className={`${inputStyles} pl-10 py-2.5`} 
-                  placeholder="Quick search products..." 
-                  value={productSearchQuery}
-                  onChange={(e) => setProductSearchQuery(e.target.value)}
-                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30"><SearchIcon /></div>
+                <input className={`${inputStyles} pl-10`} placeholder="Search products..." value={productSearchQuery} onChange={e => setProductSearchQuery(e.target.value)} />
               </div>
             </div>
-            <div className="space-y-5">
-              {localSettings.products
-                .filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
-                .map(prod => (
-                <div key={prod.id} className={cardStyles}>
-                  <div className="flex gap-4 mb-5">
-                    <div className={`w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 ${isDark ? 'border-white/5 bg-slate-900' : 'border-slate-100 bg-slate-100'}`}>
-                      <img src={prod.image} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <div><label className={labelStyles}>Name</label><input className={inputStyles} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} /></div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><label className={labelStyles}>Base Price</label><input className={inputStyles} type="number" value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} /></div>
-                        <div><label className={labelStyles}>Category</label><select className={inputStyles} value={prod.category} onChange={e => updateProduct(prod.id, 'category', e.target.value)}>{localSettings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select></div>
-                      </div>
+            {localSettings.products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).map(prod => (
+              <div key={prod.id} className={cardStyles}>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <img src={prod.image} className="w-16 h-16 rounded-xl object-cover" />
+                    <div className="flex-1 space-y-2">
+                      <input className={inputStyles} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} />
+                      <input className={inputStyles} type="number" value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} />
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className={labelStyles}>Product Image</label>
-                      <div className="flex gap-2">
-                        <input className={inputStyles} value={prod.image} onChange={e => updateProduct(prod.id, 'image', e.target.value)} placeholder="https://..." />
-                        <button 
-                          onClick={() => { setCurrentEditingProdId(prod.id); camInputRef.current?.click(); }}
-                          className={actionButtonStyles} title="Take Photo">
-                          <CameraIcon />
-                        </button>
-                        <button 
-                          onClick={() => { setCurrentEditingProdId(prod.id); fileInputRef.current?.click(); }}
-                          className={actionButtonStyles} title="Upload Gallery">
-                          <UploadIcon />
-                        </button>
+                  <button onClick={() => setExpandedAddOns(prev => ({...prev, [prod.id]: !prev[prod.id]}))} className="w-full flex items-center justify-between p-3 rounded-xl border opacity-70">
+                    <span className="text-[10px] font-black uppercase">Add Ons ({prod.sizes.length + prod.addons.length})</span>
+                    <ChevronDownIcon className={expandedAddOns[prod.id] ? 'rotate-180' : ''} />
+                  </button>
+                  {expandedAddOns[prod.id] && (
+                    <div className="space-y-4 pt-2 border-t">
+                      <div>
+                        <div className="flex justify-between items-center mb-2"><label className={labelStyles}>Sizes</label><button onClick={() => updateProduct(prod.id, 'sizes', [...prod.sizes, {label: 'New', price: 0}])} className="text-[8px] text-blue-500">+ ADD</button></div>
+                        {prod.sizes.map((s, i) => (
+                          <div key={i} className="flex gap-2 mb-2">
+                            <input className={inputStyles} value={s.label} onChange={e => {const n = [...prod.sizes]; n[i].label = e.target.value; updateProduct(prod.id, 'sizes', n)}} />
+                            <input className={inputStyles} type="number" value={s.price} onChange={e => {const n = [...prod.sizes]; n[i].price = parseFloat(e.target.value); updateProduct(prod.id, 'sizes', n)}} />
+                            <button onClick={() => updateProduct(prod.id, 'sizes', prod.sizes.filter((_, idx) => idx !== i))}><TrashIcon /></button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div><label className={labelStyles}>Short Description</label><textarea rows={2} className={`${inputStyles} resize-none leading-relaxed`} value={prod.description} onChange={e => updateProduct(prod.id, 'description', e.target.value)} /></div>
-                    
-                    {/* Expandable Add Ons Section */}
-                    <div className="pt-2">
-                      <button 
-                        onClick={() => toggleAddOnsExpansion(prod.id)}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.99] ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Add Ons</span>
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-                            {prod.sizes.length + prod.addons.length}
-                          </span>
-                        </div>
-                        <ChevronDownIcon className={`transition-transform duration-300 ${expandedAddOns[prod.id] ? 'rotate-180' : ''}`} />
-                      </button>
-
-                      {expandedAddOns[prod.id] && (
-                        <div className="mt-4 space-y-4 animate-scale-up">
-                          {/* Size Options Management */}
-                          <div className="space-y-2 border-t border-white/5 pt-3">
-                            <div className="flex justify-between items-center">
-                              <label className={labelStyles}>Select Size Options</label>
-                              <button onClick={() => updateProduct(prod.id, 'sizes', [...prod.sizes, { label: 'New Size', price: 0 }])} className="text-[8px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Size</button>
-                            </div>
-                            <div className="space-y-2">
-                              {prod.sizes.map((size, sIdx) => (
-                                <div key={sIdx} className="flex gap-2">
-                                  <input className={`${inputStyles} py-2 text-xs`} value={size.label} onChange={e => {
-                                    const newSizes = [...prod.sizes];
-                                    newSizes[sIdx].label = e.target.value;
-                                    updateProduct(prod.id, 'sizes', newSizes);
-                                  }} placeholder="Size Label" />
-                                  <input className={`${inputStyles} py-2 text-xs w-24`} type="number" value={size.price} onChange={e => {
-                                    const newSizes = [...prod.sizes];
-                                    newSizes[sIdx].price = parseFloat(e.target.value) || 0;
-                                    updateProduct(prod.id, 'sizes', newSizes);
-                                  }} placeholder="Price" />
-                                  <button onClick={() => {
-                                    const newSizes = prod.sizes.filter((_, i) => i !== sIdx);
-                                    updateProduct(prod.id, 'sizes', newSizes);
-                                  }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Addon Options Management */}
-                          <div className="space-y-2 border-t border-white/5 pt-3">
-                            <div className="flex justify-between items-center">
-                              <label className={labelStyles}>Add Extras Options</label>
-                              <button onClick={() => updateProduct(prod.id, 'addons', [...prod.addons, { label: 'New Extra', price: 0 }])} className="text-[8px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Extra</button>
-                            </div>
-                            <div className="space-y-2">
-                              {prod.addons.map((addon, aIdx) => (
-                                <div key={aIdx} className="flex gap-2">
-                                  <input className={`${inputStyles} py-2 text-xs`} value={addon.label} onChange={e => {
-                                    const newAddons = [...prod.addons];
-                                    newAddons[aIdx].label = e.target.value;
-                                    updateProduct(prod.id, 'addons', newAddons);
-                                  }} placeholder="Extra Label" />
-                                  <input className={`${inputStyles} py-2 text-xs w-24`} type="number" value={addon.price} onChange={e => {
-                                    const newAddons = [...prod.addons];
-                                    newAddons[aIdx].price = parseFloat(e.target.value) || 0;
-                                    updateProduct(prod.id, 'addons', newAddons);
-                                  }} placeholder="Price" />
-                                  <button onClick={() => {
-                                    const newAddons = prod.addons.filter((_, i) => i !== aIdx);
-                                    updateProduct(prod.id, 'addons', newAddons);
-                                  }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between items-center pt-3 mt-1 border-t border-white/5">
-                      <label className="flex items-center gap-3 text-[10px] font-black uppercase cursor-pointer opacity-70 group">
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${prod.isBestseller ? 'bg-blue-600 border-blue-600 text-white' : isDark ? 'border-white/20' : 'border-slate-300'}`}>
-                          {prod.isBestseller && <CheckIcon className="w-3.5 h-3.5" />}
-                        </div>
-                        <input type="checkbox" checked={prod.isBestseller} onChange={e => updateProduct(prod.id, 'isBestseller', e.target.checked)} className="hidden" /> 
-                        Recommend (Best Seller)?
-                      </label>
-                      <button onClick={() => removeProduct(prod.id)} className={`${dangerButtonStyles} px-5 py-2.5 text-[10px] font-black uppercase tracking-wider`}>
-                        Delete Item
-                      </button>
-                    </div>
+                  )}
+                  <div className="flex justify-between border-t pt-3">
+                    <label className="flex items-center gap-2 text-[10px] uppercase font-bold"><input type="checkbox" checked={prod.isBestseller} onChange={e => updateProduct(prod.id, 'isBestseller', e.target.checked)} /> Recommend?</label>
+                    <button onClick={() => removeProduct(prod.id)} className="text-red-500 text-[10px] uppercase font-bold">Delete Item</button>
                   </div>
                 </div>
-              ))}
-              {localSettings.products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 && (
-                <div className="text-center py-10 opacity-30 font-bold text-xs uppercase">No products found for "{productSearchQuery}"</div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -771,260 +606,112 @@ export default function App() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('kiosk_settings').select('config').eq('id', 1).single();
+      const { data } = await supabase.from('kiosk_settings').select('config').eq('id', 1).single();
       if (data?.config) setSettings(data.config);
-      else if (!data) await supabase.from('kiosk_settings').insert([{ id: 1, config: DEFAULT_SETTINGS }]);
     } catch (err) { console.error("Load failed", err); }
     finally { setLoading(false); }
   }, []);
 
   const saveToSupabase = async (newSettings: AppSettings) => {
     try {
-      const { error } = await supabase.from('kiosk_settings').upsert({ id: 1, config: newSettings });
-      if (error) throw error;
+      await supabase.from('kiosk_settings').upsert({ id: 1, config: newSettings });
       setSettings(newSettings);
-      const rgb = hexToRgb(newSettings.primaryColor);
-      if (rgb) document.documentElement.style.setProperty('--primary-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
-      showToast("Menu Synced Successfully");
-    } catch (err) { console.error("Save Error", err); showToast("Sync failed"); }
-  };
-
-  const handleOrderConfirmed = async () => {
-    if (isSubmittingOrder) return;
-    setIsSubmittingOrder(true);
-    const orderNumber = Math.floor(Math.random() * 900) + 100;
-    try {
-      await supabase.from('kiosk_orders').insert([{ order_number: orderNumber, customer_details: userDetails, cart_items: cart, total_price: cartTotal }]);
-      setLastOrderNumber(orderNumber);
-      setView(AppView.ORDER_CONFIRMED);
-    } catch (err) { console.error("Order fail", err); setLastOrderNumber(orderNumber); setView(AppView.ORDER_CONFIRMED); }
-    finally { setIsSubmittingOrder(false); }
+      showToast("Sync Successful");
+    } catch (err) { showToast("Sync failed"); }
   };
 
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
-  function hexToRgb(hex: string) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
-  }
-  
-  const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price) * item.quantity, 0) * 100) / 100, [cart]);
+  const cartTotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price) * item.quantity, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
-  
-  const addToCart = useCallback((product: Product, quantity: number, size: SizeOption, addons: AddonOption[]) => { 
-    setCart(prev => { 
-      const idx = prev.findIndex(i => i.id === product.id && i.selectedSize.label === size.label); 
-      if (idx > -1) { const n = [...prev]; n[idx].quantity += quantity; return n; } 
-      return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }]; 
-    }); 
-    showToast(`Added ${product.name}`); 
-    setView(AppView.MENU); 
-  }, [showToast]);
-  
-  const updateQuantity = useCallback((id: string, delta: number) => { 
-    setCart(prev => id === 'ALL' ? [] : prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0)); 
-  }, []);
-  
-  const restartApp = useCallback(() => { 
-    setCart([]); 
-    setUserDetails({ name: '', phone: '', address: '', diningMode: 'EAT_IN', collectionTime: 'ASAP' }); 
-    setView(AppView.LANDING); 
-  }, []);
 
-  if (loading) return <div className="h-full w-full flex flex-col items-center justify-center bg-[#0F172A] space-y-4"><div className="w-10 h-10 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin"></div><p className="font-black uppercase tracking-widest text-[8px] text-white opacity-40">Loading Kiosk...</p></div>;
-  
+  if (loading) return <div className="h-full flex items-center justify-center bg-[#0F172A] text-white">Loading...</div>;
+
   return (
-    <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden transition-colors duration-300 ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
-      {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
+    <div className={`max-w-md mx-auto h-full relative overflow-hidden transition-colors ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black z-[100]">{toast}</div>}
       
       {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.MENU)} />}
-      {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={restartApp} onAdmin={() => setView(AppView.ADMIN)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
-      {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />}
-      {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.CHECKOUT)} />}
+      {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onAdmin={() => setView(AppView.ADMIN)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
+      {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={(p, q, s, a) => {setCart([...cart, {...p, quantity: q, selectedSize: s, selectedAddons: a}]); setView(AppView.MENU);}} />}
+      {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={(id, d) => setCart(cart.map(i => i.id === id ? {...i, quantity: Math.max(0, i.quantity + d)} : i).filter(i => i.quantity > 0))} onCheckout={() => setView(AppView.CHECKOUT)} />}
       {view === AppView.CHECKOUT && <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.USER_DETAILS); }} />}
       {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CHECKOUT)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
-      {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />}
-      {view === AppView.ORDER_CONFIRMED && <OrderConfirmedView settings={settings} onRestart={restartApp} orderNumber={lastOrderNumber} />}
-      {view === AppView.ADMIN && <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { saveToSupabase(s); setView(AppView.MENU); }} onReset={restartApp} />}
+      {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={() => {setLastOrderNumber(100 + Math.floor(Math.random()*900)); setView(AppView.ORDER_CONFIRMED);}} isSubmitting={isSubmittingOrder} />}
+      {view === AppView.ORDER_CONFIRMED && <OrderConfirmedView settings={settings} onRestart={() => setView(AppView.LANDING)} orderNumber={lastOrderNumber} />}
+      {view === AppView.ADMIN && <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { saveToSupabase(s); setView(AppView.MENU); }} onReset={() => setView(AppView.LANDING)} />}
     </div>
   );
 }
 
-const CartView: React.FC<{
-  settings: AppSettings;
-  items: CartItem[];
-  onUpdateQuantity: (id: string, delta: number) => void;
-  onCheckout: () => void;
-  onBack: () => void;
-  total: number;
-}> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => {
-  const isDark = settings.themeMode === 'dark';
-
-  return (
-    <div className={`h-full flex flex-col animate-scale-up overflow-hidden bg-animated-vertical ${isDark ? 'bg-[#0F172A] from-[#0F172A] via-[#1E293B] to-[#0F172A]' : 'bg-[#F9FAFB] from-[#F9FAFB] via-[#F1F5F9] to-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center justify-between border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <div className="flex items-center space-x-3"><button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2></div>
-        <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[8px] tracking-widest text-red-500 bg-white border border-red-500 px-3 py-2 rounded-full active:bg-red-50 transition-colors shadow-sm whitespace-nowrap">CLEAR ALL</button>
-      </header>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar pb-64 smooth-scroll">
-        {items.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-            <span className="text-5xl">🛒</span>
-            <p className={`font-black uppercase tracking-widest text-[10px] opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Your basket is empty</p>
-            <button onClick={onBack} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest">Go to Menu</button>
-          </div>
-        )}
-
-        {items.map((item, idx) => {
-          const itemBasePrice = item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0);
-          return (
-            <div key={`${item.id}-${idx}`} className={`p-4 rounded-[1.75rem] border-2 flex items-center space-x-4 shadow-sm animate-scale-up transition-all ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`}>
-              <div className={`w-20 h-20 rounded-2xl p-2 shrink-0 shadow-inner border ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-50'}`}><img src={item.image} className="w-full h-full object-cover rounded-xl" /></div>
-              <div className="flex-1 overflow-hidden">
-                 <div className="flex justify-between items-start mb-0.5"><div className="overflow-hidden"><h3 className={`font-black text-sm leading-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</h3><p className="text-[8px] text-slate-400 font-black uppercase tracking-widest mt-0.5 truncate">{item.selectedSize.label}</p></div><button onClick={() => onUpdateQuantity(item.id, -item.quantity)} className={`font-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ml-2 ${isDark ? 'bg-white/5 text-white/30' : 'bg-slate-50 text-slate-400'}`}>✕</button></div>
-                 <div className="flex items-center justify-between mt-2"><span className={`font-black text-lg font-oswald whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency}{(itemBasePrice * item.quantity).toFixed(2)}</span><div className={`flex items-center justify-between rounded-xl px-1.5 py-1 border shadow-sm flex-shrink-0 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-200'}`}><button onClick={() => onUpdateQuantity(item.id, -1)} className={`w-8 h-8 font-black text-xl active:scale-90 transition-all flex items-center justify-center rounded-lg shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button><span className={`font-black text-sm tabular-nums min-w-[24px] text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.quantity}</span><button onClick={() => onUpdateQuantity(item.id, 1)} className={`w-8 h-8 font-black text-xl active:scale-90 transition-all flex items-center justify-center rounded-lg shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button></div></div>
+const CartView: React.FC<{ settings: AppSettings; items: CartItem[]; onUpdateQuantity: (id: string, delta: number) => void; onCheckout: () => void; onBack: () => void; total: number; }> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => (
+  <div className="h-full flex flex-col bg-slate-50">
+    <header className="p-4 flex items-center justify-between border-b bg-white">
+      <div className="flex items-center gap-3"><button onClick={onBack}><BackIcon /></button><h2 className="text-xl font-black uppercase">Basket</h2></div>
+      <button onClick={() => onUpdateQuantity('ALL', -9999)} className="text-[10px] font-black uppercase text-red-500">Clear</button>
+    </header>
+    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {items.map((item, idx) => (
+        <div key={idx} className="bg-white p-3 rounded-2xl flex items-center gap-4 border shadow-sm">
+          <img src={item.image} className="w-16 h-16 rounded-xl object-cover" />
+          <div className="flex-1">
+            <h3 className="font-bold text-sm">{item.name}</h3>
+            <p className="text-[10px] opacity-50 uppercase">{item.selectedSize.label}</p>
+            <div className="flex justify-between items-center mt-2">
+              <span className="font-black">{settings.currency} {((item.price + item.selectedSize.price) * item.quantity).toFixed(2)}</span>
+              <div className="flex items-center gap-3 bg-slate-100 rounded-lg p-1">
+                <button onClick={() => onUpdateQuantity(item.id, -1)} className="w-6 h-6 bg-white rounded shadow-sm">-</button>
+                <span className="font-bold text-xs">{item.quantity}</span>
+                <button onClick={() => onUpdateQuantity(item.id, 1)} className="w-6 h-6 bg-white rounded shadow-sm">+</button>
               </div>
             </div>
-          );
-        })}
-      </div>
-      {items.length > 0 && (
-        <div className={`flex-shrink-0 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 border-t rounded-t-[2.5rem] shadow-[0_-15px_40px_rgba(0,0,0,0.15)] space-y-4 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-          <div className="space-y-3"><div className="flex justify-between text-slate-400 font-black uppercase text-[8px] tracking-widest"><span>Subtotal</span><span>{settings.currency}{total.toFixed(2)}</span></div><div className={`flex justify-between text-3xl font-black pt-4 border-t-2 ${isDark ? 'border-white/5 text-white' : 'border-slate-50 text-slate-900'}`}><span className="font-oswald text-xl">TOTAL</span><span className="font-oswald" style={{ color: settings.primaryColor }}>{settings.currency}{total.toFixed(2)}</span></div></div>
-          <button onClick={onCheckout} className="w-full text-white py-5 rounded-[1.75rem] text-xl font-black uppercase shadow-lg active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden">Check Out</button>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSelectMode: (method: DiningMode) => void }> = ({ settings, onBack, onSelectMode }) => {
-  const isDark = settings.themeMode === 'dark';
-  return (
-    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
-          <BackIcon />
-        </button>
-        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2>
-      </header>
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center space-y-4 no-scrollbar smooth-scroll">
-        <h3 className={`text-center font-black uppercase tracking-widest text-[10px] mb-2 opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Choose your service</h3>
-        <div className="grid grid-cols-1 gap-3 w-full max-w-[280px]">
-          <button onClick={() => onSelectMode('EAT_IN')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
-            <span className="text-4xl">🍽️</span>
-            <span className="text-base font-black uppercase tracking-tight">Eat In</span>
-          </button>
-          <button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
-            <span className="text-4xl">🥡</span>
-            <span className="text-base font-black uppercase tracking-tight">Take Away</span>
-          </button>
-          <button onClick={() => onSelectMode('DELIVERY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
-            <span className="text-4xl">🚚</span>
-            <span className="text-base font-black uppercase tracking-tight">Delivery</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode; onBack: () => void; onNext: (details: UserDetails) => void; initialDetails: UserDetails; }> = ({ settings, mode, onBack, onNext, initialDetails }) => {
-  const [details, setDetails] = useState<UserDetails>(initialDetails);
-  const isDark = settings.themeMode === 'dark';
-  const inputClass = `w-full p-5 rounded-2xl border-2 font-bold transition-all outline-none text-sm ${isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-600'}`;
-  const isValid = details.name.trim().length > 0 && details.phone.trim().length > 0;
-
-  return (
-    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
-          <BackIcon />
-        </button>
-        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Details</h2>
-      </header>
-      <form className="flex-1 p-4 space-y-5 overflow-y-auto no-scrollbar" onSubmit={(e) => e.preventDefault()}>
-        <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Full Name</label>
-          <input required type="text" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Your Name" className={inputClass} />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Mobile Number</label>
-          <input required type="tel" value={details.phone} onChange={e => setDetails({...details, phone: e.target.value})} placeholder="+00 000 000 000" className={inputClass} />
-        </div>
-        {mode === 'DELIVERY' && (
-          <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Delivery Address</label>
-            <textarea required rows={3} value={details.address} onChange={e => setDetails({...details, address: e.target.value})} placeholder="House, Street, Area..." className={`${inputClass} resize-none`} />
           </div>
-        )}
-      </form>
-      <div className="px-6 pb-8 pt-4 border-t">
-        <button onClick={() => onNext(details)} className="w-full text-white py-5 rounded-2xl text-lg font-black uppercase shadow-lg active:scale-[0.98] transition-all bg-blue-600 disabled:opacity-50" disabled={!isValid}>
-          Continue
-        </button>
+        </div>
+      ))}
+    </div>
+    <div className="p-6 bg-white border-t">
+      <div className="flex justify-between text-2xl font-black mb-4"><span className="font-oswald">TOTAL</span><span style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span></div>
+      <button onClick={onCheckout} className="w-full bg-[#86BC25] text-white py-4 rounded-2xl font-black uppercase">Checkout</button>
+    </div>
+  </div>
+);
+
+const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSelectMode: (m: DiningMode) => void }> = ({ settings, onBack, onSelectMode }) => (
+  <div className="h-full flex flex-col bg-slate-50">
+    <header className="p-4 border-b bg-white flex items-center gap-3"><button onClick={onBack}><BackIcon /></button><h2 className="text-xl font-black uppercase">Service</h2></header>
+    <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+      <button onClick={() => onSelectMode('EAT_IN')} className="w-full bg-white p-6 rounded-3xl border-2 font-black uppercase flex flex-col items-center gap-2"><span>🍽️</span> Eat In</button>
+      <button onClick={() => onSelectMode('TAKE_AWAY')} className="w-full bg-white p-6 rounded-3xl border-2 font-black uppercase flex flex-col items-center gap-2"><span>🥡</span> Take Away</button>
+      <button onClick={() => onSelectMode('DELIVERY')} className="w-full bg-white p-6 rounded-3xl border-2 font-black uppercase flex flex-col items-center gap-2"><span>🚚</span> Delivery</button>
+    </div>
+  </div>
+);
+
+const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode; onBack: () => void; onNext: (d: UserDetails) => void; initialDetails: UserDetails; }> = ({ settings, mode, onBack, onNext, initialDetails }) => {
+  const [d, setD] = useState(initialDetails);
+  return (
+    <div className="h-full flex flex-col bg-slate-50">
+      <header className="p-4 border-b bg-white flex items-center gap-3"><button onClick={onBack}><BackIcon /></button><h2 className="text-xl font-black uppercase">Details</h2></header>
+      <div className="flex-1 p-6 space-y-4">
+        <input className="w-full p-4 rounded-xl border-2 font-bold" value={d.name} onChange={e => setD({...d, name: e.target.value})} placeholder="Name" />
+        <input className="w-full p-4 rounded-xl border-2 font-bold" value={d.phone} onChange={e => setD({...d, phone: e.target.value})} placeholder="Phone" />
+        {mode === 'DELIVERY' && <textarea className="w-full p-4 rounded-xl border-2 font-bold" value={d.address} onChange={e => setD({...d, address: e.target.value})} placeholder="Address" />}
       </div>
+      <div className="p-6"><button onClick={() => onNext(d)} disabled={!d.name || !d.phone} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase disabled:opacity-50">Next</button></div>
     </div>
   );
 };
 
-const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; details: UserDetails; total: number; onBack: () => void; onConfirm: () => void; isSubmitting: boolean; }> = ({ settings, cart, details, total, onBack, onConfirm, isSubmitting }) => {
-  const isDark = settings.themeMode === 'dark';
-  return (
-    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
-        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
-          <BackIcon />
-        </button>
-        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review</h2>
-      </header>
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-64">
-        <section className="space-y-3">
-          <h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Your Details</h3>
-          <div className={`p-5 rounded-3xl border-2 space-y-3 ${isDark ? 'bg-slate-800/50 border-white/5 text-white' : 'bg-white border-slate-50 text-slate-900'}`}>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">👤</span>
-              <div className="overflow-hidden">
-                <p className="font-black text-sm truncate">{details.name}</p>
-                <p className="text-[10px] opacity-50 truncate">{details.phone}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 border-t pt-3 border-slate-100/10">
-              <span className="text-2xl">{details.diningMode === 'DELIVERY' ? '🚚' : '🥡'}</span>
-              <p className="font-black uppercase text-[10px]">{details.diningMode.replace('_', ' ')}</p>
-            </div>
-          </div>
-        </section>
-        <section className="space-y-3">
-          <h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Items</h3>
-          <div className="space-y-2">
-            {cart.map((item, idx) => (
-              <div key={idx} className={`p-3 rounded-2xl flex justify-between items-center ${isDark ? 'bg-slate-800/30 text-white' : 'bg-white shadow-sm text-slate-900'}`}>
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] flex-shrink-0 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
-                    {item.quantity}
-                  </span>
-                  <p className="font-bold text-xs truncate">{item.name}</p>
-                </div>
-                <p className="font-black font-oswald text-xs ml-2">
-                  {settings.currency}{((item.price + item.selectedSize.price) * item.quantity).toFixed(2)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-      <div className={`flex-shrink-0 px-6 pb-8 pt-6 border-t rounded-t-[2.5rem] shadow-2xl ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
-        <div className="flex justify-between items-end mb-4">
-          <span className="text-slate-400 font-black uppercase text-[10px]">Grand Total</span>
-          <span className="text-3xl font-black font-oswald" style={{ color: settings.primaryColor }}>
-            {settings.currency}{total.toFixed(2)}
-          </span>
-        </div>
-        <button onClick={onConfirm} disabled={isSubmitting} className="w-full text-white py-5 rounded-2xl text-xl font-black uppercase shadow-lg bg-[#86BC25]">
-          {isSubmitting ? 'Processing...' : 'Place Order'}
-        </button>
-      </div>
+const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; details: UserDetails; total: number; onBack: () => void; onConfirm: () => void; isSubmitting: boolean; }> = ({ settings, cart, details, total, onBack, onConfirm }) => (
+  <div className="h-full flex flex-col bg-slate-50">
+    <header className="p-4 border-b bg-white flex items-center gap-3"><button onClick={onBack}><BackIcon /></button><h2 className="text-xl font-black uppercase">Review</h2></header>
+    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="bg-white p-4 rounded-2xl border space-y-1"><p className="font-black text-sm">{details.name}</p><p className="text-xs opacity-50">{details.phone}</p><p className="text-xs font-bold uppercase" style={{ color: settings.primaryColor }}>{details.diningMode}</p></div>
+      <div className="space-y-2">{cart.map((item, i) => (<div key={i} className="flex justify-between items-center text-sm font-bold bg-white p-3 rounded-xl border"><span>{item.quantity}x {item.name}</span><span>{settings.currency} {((item.price + item.selectedSize.price)*item.quantity).toFixed(2)}</span></div>))}</div>
     </div>
-  );
-};
+    <div className="p-6 border-t bg-white">
+      <div className="flex justify-between items-end mb-4"><span className="text-xs font-bold opacity-40">Total</span><span className="text-3xl font-black" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span></div>
+      <button onClick={onConfirm} className="w-full bg-[#86BC25] text-white py-4 rounded-xl font-black uppercase">Place Order</button>
+    </div>
+  </div>
+);
