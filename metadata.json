@@ -1,5 +1,7 @@
 {
   "name": "KioskGo - Touch-Friendly Food Ordering",
   "description": "A high-performance, kiosk-inspired mobile food ordering app with bold typography, large touch targets, and fluid animations for a seamless ordering experience.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

@@ -1,20 +1,57 @@
 
-export type CategoryType = 'RECOMMANDED' | 'BURGERS' | 'BUCKETS' | 'MEALS' | 'SIDES' | 'DRINKS' | 'DESSERTS';
+export type CategoryType = string;
+
+export interface Category {
+  id: CategoryType;
+  label: string;
+  icon: string;
+}
+
+export interface SizeOption {
+  label: string;
+  price: number;
+}
+
+export interface AddonOption {
+  label: string;
+  price: number;
+}
 
 export interface Product {
   id: string;
   name: string;
-  price: number;
+  price: number; // Base price (usually for default size)
   image: string;
   category: CategoryType;
   description: string;
   isBestseller?: boolean;
   isVegetarian?: boolean;
+  sizes: SizeOption[];
+  addons: AddonOption[];
+}
+
+export interface WorkingDay {
+  day: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+export interface AppSettings {
+  brandName: string;
+  primaryColor: string;
+  themeMode: 'light' | 'dark';
+  currency: string;
+  categories: Category[];
+  products: Product[];
+  workingHours: WorkingDay[];
+  forceHolidays: string[]; // YYYY-MM-DD formatted strings
 }
 
 export interface CartItem extends Product {
   quantity: number;
-  customizations?: string[];
+  selectedSize: SizeOption;
+  selectedAddons: AddonOption[];
 }
 
 export interface UserDetails {
@@ -22,6 +59,7 @@ export interface UserDetails {
   phone: string;
   address: string;
   cashTendered: number;
+  requestedTime: string;
 }
 
 export enum AppView {
@@ -32,5 +70,6 @@ export enum AppView {
   CHECKOUT = 'CHECKOUT',
   USER_DETAILS = 'USER_DETAILS',
   FINAL_SUMMARY = 'FINAL_SUMMARY',
-  ORDER_CONFIRMED = 'ORDER_CONFIRMED'
+  ORDER_CONFIRMED = 'ORDER_CONFIRMED',
+  ADMIN = 'ADMIN'
 }

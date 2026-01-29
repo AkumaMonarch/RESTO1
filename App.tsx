@@ -1,11 +1,99 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { AppView, CartItem, CategoryType, Product, UserDetails } from './types';
-import { CATEGORIES, PRODUCTS } from './constants';
+import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay } from './types';
+import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
 
 /**
- * Custom hook to enable grab-to-scroll (click and drag) on an element.
+ * --- SVG Icons ---
  */
+const BackIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"></line>
+    <polyline points="12 19 5 12 12 5"></polyline>
+  </svg>
+);
+
+const AdminIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"></circle>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+  </svg>
+);
+
+const SunIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="5"></circle>
+    <line x1="12" y1="1" x2="12" y2="3"></line>
+    <line x1="12" y1="21" x2="12" y2="23"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+    <line x1="1" y1="12" x2="3" y2="12"></line>
+    <line x1="21" y1="12" x2="23" y2="12"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  </svg>
+);
+
+const TrashIcon = ({ className }: { className?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+);
+
+const PlusIcon = ({ className }: { className?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+
+const CameraIcon = ({ className }: { className?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+    <circle cx="12" cy="13" r="4"></circle>
+  </svg>
+);
+
+const UploadIcon = ({ className }: { className?: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v-4"></path>
+    <polyline points="17 8 12 3 7 8"></polyline>
+    <line x1="12" y1="3" x2="12" y2="15"></line>
+  </svg>
+);
+
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+);
+
+/**
+ * --- Utils ---
+ */
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 function useGrabToScroll(direction: 'horizontal' | 'vertical' = 'horizontal') {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -25,237 +113,166 @@ function useGrabToScroll(direction: 'horizontal' | 'vertical' = 'horizontal') {
     setScrollTop(scrollRef.current.scrollTop);
   };
 
-  const onMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const onMouseLeave = () => {
-    setIsDragging(false);
-  };
+  const onMouseUp = () => setIsDragging(false);
+  const onMouseLeave = () => setIsDragging(false);
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !scrollRef.current) return;
     e.preventDefault();
     setHasMoved(true);
-    
     if (direction === 'horizontal') {
       const x = e.pageX - scrollRef.current.offsetLeft;
-      const walk = (x - startX) * 1.5; // Scroll speed
-      scrollRef.current.scrollLeft = scrollLeft - walk;
+      scrollRef.current.scrollLeft = scrollLeft - (x - startX) * 1.5;
     } else {
       const y = e.pageY - scrollRef.current.offsetTop;
-      const walk = (y - startY) * 1.5;
-      scrollRef.current.scrollTop = scrollTop - walk;
+      scrollRef.current.scrollTop = scrollTop - (y - startY) * 1.5;
     }
   };
 
-  const preventClick = (e: React.MouseEvent) => {
-    if (hasMoved) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-  };
-
-  return {
-    ref: scrollRef,
-    onMouseDown,
-    onMouseUp,
-    onMouseLeave,
-    onMouseMove,
-    onClickCapture: preventClick,
-    isDragging
-  };
+  return { ref: scrollRef, onMouseDown, onMouseUp, onMouseLeave, onMouseMove, onClickCapture: (e: React.MouseEvent) => { if (hasMoved) e.stopPropagation(); }, isDragging };
 }
 
 // --- Views ---
 
-const LandingView: React.FC<{ onStart: () => void }> = ({ onStart }) => (
-  <div 
-    className="h-screen w-full flex flex-col items-center justify-center bg-[#E4002B] text-white p-8 space-y-12 animate-scale-up"
-    onClick={onStart}
-  >
-    <div className="bg-white p-6 rounded-2xl shadow-2xl">
-      <h1 className="text-6xl font-black text-[#E4002B] tracking-tighter italic">KFC</h1>
+const LandingView: React.FC<{ settings: AppSettings; onStart: () => void }> = ({ settings, onStart }) => (
+  <div className="h-full w-full flex flex-col items-center justify-center p-8 space-y-12 animate-scale-up cursor-pointer" style={{ backgroundColor: settings.primaryColor }} onClick={onStart}>
+    <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] transform transition-transform active:scale-95">
+      <h1 className="text-5xl font-black tracking-tighter italic select-none" style={{ color: settings.primaryColor }}>{settings.brandName}</h1>
     </div>
-    
-    <div className="text-center space-y-4">
+    <div className="text-center space-y-4 text-white">
       <h2 className="text-4xl font-black font-oswald tracking-tight uppercase">Touch to start</h2>
-      <p className="text-xl opacity-90 font-medium">Order your favorites now</p>
+      <p className="text-xl opacity-90 font-medium">Your feast awaits</p>
     </div>
-
-    <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-      {CATEGORIES.slice(0, 4).map(cat => (
-        <div key={cat.id} className="bg-white/10 p-6 rounded-2xl flex flex-col items-center space-y-2 border border-white/30 backdrop-blur-sm">
+    <div className="grid grid-cols-2 gap-4 w-full max-w-sm text-white">
+      {settings.categories.slice(0, 4).map(cat => (
+        <div key={cat.id} className="bg-white/10 p-6 rounded-2xl flex flex-col items-center space-y-2 border border-white/20 backdrop-blur-md">
           <span className="text-4xl">{cat.icon}</span>
-          <span className="text-sm font-bold tracking-wide">{cat.label}</span>
+          <span className="text-[11px] font-black uppercase tracking-widest">{cat.label}</span>
         </div>
       ))}
     </div>
-
-    <div className="flex flex-col items-center animate-bounce mt-8">
-      <div className="w-14 h-14 rounded-full border-4 border-white flex items-center justify-center">
-         <span className="text-2xl font-bold">↓</span>
-      </div>
+    <div className="flex flex-col items-center animate-bounce mt-8 text-white">
+      <div className="w-14 h-14 rounded-full border-4 border-white/30 flex items-center justify-center backdrop-blur-sm"><span className="text-2xl font-bold">↓</span></div>
     </div>
   </div>
 );
 
 const MenuView: React.FC<{
+  settings: AppSettings;
   onSelectProduct: (p: Product) => void;
   onGoToCart: () => void;
   onRestart: () => void;
+  onAdmin: () => void;
   cartTotal: number;
   cartCount: number;
-}> = ({ onSelectProduct, onGoToCart, onRestart, cartTotal, cartCount }) => {
-  const [activeCategory, setActiveCategory] = useState<CategoryType>('BURGERS');
-  
+}> = ({ settings, onSelectProduct, onGoToCart, onRestart, onAdmin, cartTotal, cartCount }) => {
+  const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'BURGERS');
+  const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
-  
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(false);
+  const isDark = settings.themeMode === 'dark';
 
-  const checkScroll = useCallback(() => {
-    const el = navScrollProps.ref.current;
-    if (el) {
-      setShowLeftArrow(el.scrollLeft > 20);
-      setShowRightArrow(el.scrollLeft < el.scrollWidth - el.clientWidth - 20);
-    }
-  }, [navScrollProps.ref]);
-
-  useEffect(() => {
-    checkScroll();
-    const el = navScrollProps.ref.current;
-    if (el) {
-      el.addEventListener('scroll', checkScroll);
-      window.addEventListener('resize', checkScroll);
-      return () => {
-        el.removeEventListener('scroll', checkScroll);
-        window.removeEventListener('resize', checkScroll);
-      };
-    }
-  }, [checkScroll, navScrollProps.ref]);
+  const isHoliday = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return settings.forceHolidays.includes(todayStr);
+  }, [settings.forceHolidays]);
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'RECOMMANDED') return PRODUCTS.filter(p => p.isBestseller);
-    return PRODUCTS.filter(p => p.category === activeCategory);
-  }, [activeCategory]);
+    let list = settings.products;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return list.filter(p => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+    }
+    return activeCategory === 'RECOMMANDED' ? list.filter(p => p.isBestseller) : list.filter(p => p.category === activeCategory);
+  }, [activeCategory, settings.products, searchQuery]);
 
   return (
-    <div className="h-screen flex flex-col bg-[#F9F9F9] overflow-hidden">
-      {/* Header */}
-      <header className="flex-shrink-0 flex items-center justify-between p-4 bg-white border-b shadow-sm z-20">
+    <div className={`h-full flex flex-col overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
+      <header className={`flex-shrink-0 flex items-center justify-between p-4 border-b shadow-sm z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-3">
-           <div className="bg-[#E4002B] px-3 py-1 text-white font-black italic rounded text-xl shadow-sm">KFC</div>
-           <h2 className="text-xl font-bold font-oswald text-gray-900 tracking-tight uppercase">{activeCategory}</h2>
+           <div className="px-3 py-1.5 text-white font-black italic rounded-lg text-sm shadow-sm transition-transform" style={{ backgroundColor: settings.primaryColor }}>{settings.brandName}</div>
+           <h2 className={`text-xl font-bold font-oswald tracking-tight uppercase overflow-hidden whitespace-nowrap text-ellipsis max-w-[120px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
+             {searchQuery.trim() ? 'Search' : activeCategory}
+           </h2>
         </div>
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onRestart();
-          }}
-          className="text-[#E4002B] font-black uppercase tracking-wider text-xs border-2 border-[#E4002B] px-3 py-1 rounded-full active:bg-red-50 transition-colors"
-        >
-          Restart
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Visible Admin/Settings Button */}
+          <button onClick={onAdmin} className={`p-2.5 rounded-xl transition-all active:scale-90 border shadow-sm ${isDark ? 'bg-white/5 border-white/10 text-white/40 hover:text-white/70' : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600'}`}>
+            <AdminIcon />
+          </button>
+          <button onClick={onRestart} className="font-black uppercase tracking-wider text-[10px] border-2 px-4 py-2.5 rounded-xl transition-all active:scale-95 shadow-sm" style={{ borderColor: settings.primaryColor, color: settings.primaryColor }}>
+            RESTART
+          </button>
+        </div>
       </header>
 
-      {/* Horizontal Category Nav with Scroll Hints */}
+      {isHoliday && (
+        <div className="bg-amber-100 text-amber-900 px-4 py-3 text-sm font-bold border-b border-amber-200 flex items-center justify-center gap-3 animate-pulse">
+          <span className="text-xl">⚠️</span>
+          <span className="uppercase tracking-tight">Today is a holiday. Store closed for orders.</span>
+        </div>
+      )}
+
       <div className="relative flex-shrink-0">
-        {/* Left Scroll Indicator */}
-        {showLeftArrow && (
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white via-white/80 to-transparent z-20 flex items-center justify-start pl-2 pointer-events-none transition-opacity duration-300">
-            <div className="bg-[#E4002B] w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black shadow-md animate-pulse">
-              ❮
-            </div>
-          </div>
-        )}
-
-        {/* Right Scroll Indicator */}
-        {showRightArrow && (
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white via-white/80 to-transparent z-20 flex items-center justify-end pr-2 pointer-events-none transition-opacity duration-300">
-            <div className="bg-[#E4002B] w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black shadow-md animate-pulse">
-              ❯
-            </div>
-          </div>
-        )}
-
-        <nav 
-          {...navScrollProps}
-          className={`bg-white border-b overflow-x-auto no-scrollbar py-3 px-4 flex flex-nowrap items-center space-x-3 shadow-sm z-10 touch-pan-x select-none cursor-grab active:cursor-grabbing`}
-        >
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setActiveCategory(cat.id);
-              }}
-              className={`flex-shrink-0 flex items-center space-x-2 px-5 py-2.5 rounded-2xl transition-all whitespace-nowrap border-2 ${
-                activeCategory === cat.id 
-                  ? 'bg-[#E4002B] border-[#E4002B] text-white shadow-md scale-105' 
-                  : 'bg-gray-50 border-gray-100 text-gray-400 grayscale'
-              }`}
-            >
-              <span className="text-2xl pointer-events-none">{cat.icon}</span>
-              <span className="text-[11px] font-black uppercase tracking-tighter pointer-events-none">{cat.label}</span>
+        <nav {...navScrollProps} className={`border-b overflow-x-auto no-scrollbar py-4 px-4 flex flex-nowrap items-center space-x-3 shadow-sm z-10 touch-pan-x select-none ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+          {settings.categories.map(cat => (
+            <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSearchQuery(''); }} 
+              className={`flex-shrink-0 flex items-center space-x-3 px-6 py-3.5 rounded-2xl transition-all whitespace-nowrap border-2 ${activeCategory === cat.id && !searchQuery ? 'text-white shadow-lg scale-105' : isDark ? 'bg-slate-800/50 border-white/5 text-white/30' : 'bg-slate-50 border-slate-100 text-slate-400'}`} 
+              style={activeCategory === cat.id && !searchQuery ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
+              <span className="text-2xl">{cat.icon}</span>
+              <span className="text-xs font-black uppercase tracking-tighter">{cat.label}</span>
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Product List Area with Grab Scroll */}
-      <main 
-        {...mainScrollProps}
-        className="flex-1 overflow-y-auto p-4 no-scrollbar bg-white select-none cursor-grab active:cursor-grabbing"
-      >
+      <div className={`flex-shrink-0 p-4 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-b'}`}>
+        <div className="relative flex items-center">
+          <div className="absolute left-4 text-slate-400"><SearchIcon /></div>
+          <input type="text" placeholder="I'm craving..." 
+            className={`w-full border-2 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none transition-all ${isDark ? 'bg-[#0F172A] border-white/10 text-white focus:border-white/30' : 'bg-slate-50 border-slate-100 text-slate-900 focus:border-slate-200 shadow-inner'}`}
+            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+      </div>
+
+      <main {...mainScrollProps} className="flex-1 overflow-y-auto p-4 no-scrollbar pb-48">
         <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map(p => (
-            <div 
-              key={p.id} 
-              onClick={() => onSelectProduct(p)}
-              className={`relative bg-white rounded-3xl border-2 transition-all active:scale-[0.98] flex items-stretch p-3 overflow-hidden min-h-[160px] cursor-pointer ${
-                p.isBestseller ? 'border-amber-400 bg-amber-50/10' : 'border-gray-100'
-              }`}
-            >
-              {p.isBestseller && (
-                <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-3 py-1 rounded-br-2xl z-10 uppercase italic shadow-sm">
-                  Hot Seller
-                </div>
-              )}
-              <div className="w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center bg-gray-50 rounded-2xl mr-4 shrink-0 self-center overflow-hidden pointer-events-none">
-                <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+            <div key={p.id} onClick={() => onSelectProduct(p)} 
+              className={`relative rounded-[32px] border-2 transition-all active:scale-[0.98] flex items-stretch p-3 overflow-hidden min-h-[160px] cursor-pointer shadow-sm ${p.isBestseller ? 'border-amber-400 bg-amber-400/5' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
+              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[10px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic shadow-md">Must Try</div>}
+              <div className={`w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center rounded-3xl mr-4 shrink-0 self-center overflow-hidden shadow-inner ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50'}`}>
+                <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform hover:scale-110" loading="lazy" />
               </div>
-              <div className="flex-1 flex flex-col py-1 pointer-events-none">
+              <div className="flex-1 flex flex-col py-2">
                 <div className="flex-1 mb-2">
-                  <h3 className="text-base font-black text-gray-900 leading-tight mb-1 pr-1">{p.name}</h3>
-                  <p className="text-[10px] text-gray-400 line-clamp-2 leading-snug">{p.description}</p>
+                  <h3 className={`text-base font-black leading-tight mb-1 pr-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{p.name}</h3>
+                  <p className={`text-[11px] line-clamp-2 leading-relaxed ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{p.description}</p>
                 </div>
                 <div className="flex justify-between items-center mt-auto pt-2">
-                  <span className="text-xl font-black text-gray-900">Rs {p.price.toFixed(2)}</span>
-                  <button className="bg-[#E4002B] text-white w-12 h-12 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-lg active:scale-90 transition-transform flex-shrink-0 leading-none pb-1 pointer-events-auto">
-                    +
-                  </button>
+                  <span className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {p.price.toFixed(2)}</span>
+                  <button disabled={isHoliday} className={`text-white w-12 h-12 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-xl active:scale-90 transition-all flex-shrink-0 leading-none pb-1 ${isHoliday ? 'opacity-30 grayscale cursor-not-allowed' : 'hover:brightness-110'}`} style={{ backgroundColor: settings.primaryColor }}>+</button>
                 </div>
               </div>
             </div>
           ))}
+          {filteredProducts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 opacity-50 space-y-4">
+              <span className="text-6xl">🔍</span>
+              <p className="font-bold uppercase tracking-widest text-xs text-center">No products found matching your search</p>
+            </div>
+          )}
         </div>
       </main>
-
-      {/* Non-Fixed Cart Bar at the Bottom */}
+      
       {cartCount > 0 && (
-        <div className="flex-shrink-0 p-4 bg-white border-t-2 border-gray-100 flex items-center gap-4 animate-scale-up shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-20">
-           <div 
-            onClick={onGoToCart}
-            className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-3xl flex items-center justify-between font-black shadow-lg cursor-pointer"
-          >
+        <div className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 backdrop-blur-xl border-t flex items-center gap-4 animate-scale-up shadow-[0_-20px_50px_rgba(0,0,0,0.15)] z-30 ${isDark ? 'bg-[#0F172A]/90 border-white/10' : 'bg-white/90 border-slate-100'}`}>
+           <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-[0_10px_30px_-5px_rgba(134,188,37,0.5)] cursor-pointer">
             <div className="flex items-center space-x-4">
-               <div className="bg-white text-[#86BC25] w-9 h-9 rounded-xl flex items-center justify-center shadow-inner text-lg">
-                 {cartCount}
-               </div>
-               <span className="text-lg uppercase tracking-tight">View Basket</span>
+               <div className="bg-white text-[#86BC25] w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-lg animate-bounce-short">{cartCount}</div>
+               <span className="text-lg uppercase tracking-tight">Basket</span>
             </div>
-            <span className="text-xl font-oswald tracking-wide">Rs {cartTotal.toFixed(2)}</span>
+            <span className="text-2xl font-oswald tracking-wide">{settings.currency} {cartTotal.toFixed(2)}</span>
           </div>
         </div>
       )}
@@ -264,72 +281,84 @@ const MenuView: React.FC<{
 };
 
 const ProductDetailView: React.FC<{
+  settings: AppSettings;
   product: Product;
-  onAddToCart: (p: Product, quantity: number) => void;
+  onAddToCart: (p: Product, quantity: number, size: SizeOption, addons: AddonOption[]) => void;
   onBack: () => void;
-}> = ({ product, onAddToCart, onBack }) => {
+}> = ({ settings, product, onAddToCart, onBack }) => {
   const [quantity, setQuantity] = useState(1);
-  const [size, setSize] = useState('Medium');
+  const [selectedSize, setSelectedSize] = useState<SizeOption>(product.sizes[0] || { label: 'Regular', price: 0 });
+  const [selectedAddons, setSelectedAddons] = useState<AddonOption[]>([]);
+  const isDark = settings.themeMode === 'dark';
+
+  const totalPrice = useMemo(() => {
+    const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+    return (product.price + selectedSize.price + addonsTotal) * quantity;
+  }, [product, selectedSize, selectedAddons, quantity]);
 
   return (
-    <div className="h-screen bg-white flex flex-col animate-scale-up overflow-hidden">
-      <header className="flex-shrink-0 p-4 flex items-center space-x-4 border-b bg-white sticky top-0 z-10">
-        <button onClick={onBack} className="text-3xl p-2 bg-gray-100 text-gray-900 rounded-xl active:bg-gray-200 transition-colors flex items-center justify-center w-12 h-12 flex-shrink-0">
-          ←
-        </button>
-        <h2 className="text-xl font-black font-oswald uppercase text-gray-800">Customize</h2>
+    <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      <header className={`flex-shrink-0 p-5 flex items-center space-x-4 border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <button onClick={onBack} className={`p-2 rounded-2xl active:bg-opacity-80 flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
+        <h2 className={`text-xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Customize</h2>
       </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64">
         <div className="flex flex-col items-center">
-           <div className="w-64 h-64 bg-gray-50 rounded-[40px] flex items-center justify-center p-4 mb-6 shadow-inner overflow-hidden">
-              <img src={product.image} className="w-full h-full object-cover" />
+           <div className={`w-72 h-72 rounded-[3rem] flex items-center justify-center p-6 mb-8 shadow-inner overflow-hidden border-2 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+              <img src={product.image} className="w-full h-full object-cover rounded-[2rem] shadow-2xl" loading="eager" />
            </div>
-           <h3 className="text-3xl font-black text-center text-gray-900 leading-none mb-3">{product.name}</h3>
-           <p className="text-gray-500 text-center font-medium max-w-xs mx-auto">{product.description}</p>
+           <h3 className={`text-4xl font-black text-center leading-none mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
+           <p className={`text-center font-medium max-w-xs mx-auto text-sm leading-relaxed ${isDark ? 'text-white/50' : 'text-slate-500'}`}>{product.description}</p>
         </div>
-        <section className="space-y-4">
-           <div className="flex justify-between items-center">
-             <h4 className="text-sm font-black uppercase text-gray-400 tracking-widest">Select Size</h4>
-             <span className="text-xs font-bold text-[#E4002B] bg-red-50 px-2 py-1 rounded">Required</span>
-           </div>
-           <div className="grid grid-cols-3 gap-3">
-             {['Small', 'Medium', 'Large'].map(s => (
-               <button 
-                key={s}
-                onClick={() => setSize(s)}
-                className={`py-4 rounded-2xl border-2 font-black transition-all ${
-                  size === s ? 'border-[#E4002B] bg-red-50 text-[#E4002B] shadow-sm' : 'border-gray-100 text-gray-400 bg-white'
-                }`}
-               >
-                 {s}
-               </button>
-             ))}
-           </div>
-        </section>
-        <section className="space-y-4">
-           <h4 className="text-sm font-black uppercase text-gray-400 tracking-widest">Add Extras (+Rs 1.50 ea)</h4>
-           <div className="space-y-3 pb-8">
-              {['Double Cheese', 'Extra Bacon', 'Spicy Jalapeños'].map(extra => (
-                <label key={extra} className="flex items-center justify-between p-5 bg-white border-2 border-gray-100 rounded-2xl active:bg-gray-50 transition-colors cursor-pointer">
-                  <span className="font-bold text-gray-800">{extra}</span>
-                  <input type="checkbox" className="w-7 h-7 rounded-lg border-2 border-gray-200 accent-[#E4002B] transition-all" />
-                </label>
-              ))}
-           </div>
-        </section>
+        
+        {product.sizes.length > 0 && (
+          <section className="space-y-4">
+             <div className="flex justify-between items-center">
+               <h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Select Size</h4>
+               <span className="text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wider" style={{ color: settings.primaryColor, backgroundColor: `${settings.primaryColor}15` }}>Required</span>
+             </div>
+             <div className="grid grid-cols-3 gap-3">
+               {product.sizes.map(s => (
+                 <button key={s.label} onClick={() => setSelectedSize(s)} 
+                  className={`py-5 rounded-3xl border-2 font-black transition-all flex flex-col items-center shadow-sm ${selectedSize.label === s.label ? 'scale-105 ring-4 ring-opacity-20' : isDark ? 'border-white/5 text-white/30 bg-white/5' : 'border-slate-50 text-slate-400 bg-white'}`} 
+                  style={selectedSize.label === s.label ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}10`, color: settings.primaryColor, ringColor: settings.primaryColor } : {}}>
+                   <span className="text-sm">{s.label}</span>
+                   <span className="text-[10px] opacity-70 mt-1">+{settings.currency} {s.price.toFixed(2)}</span>
+                 </button>
+               ))}
+             </div>
+          </section>
+        )}
+
+        {product.addons.length > 0 && (
+          <section className="space-y-4">
+             <h4 className={`text-xs font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Add Extras</h4>
+             <div className="grid grid-cols-1 gap-3 pb-12">
+               {product.addons.map(addon => (
+                 <label key={addon.label} className={`flex items-center justify-between p-6 border-2 rounded-[2rem] active:bg-opacity-50 transition-all cursor-pointer shadow-sm ${selectedAddons.find(a => a.label === addon.label) ? 'border-opacity-100' : isDark ? 'bg-slate-800/30 border-white/5' : 'bg-white border-slate-50 hover:border-slate-100'}`} style={selectedAddons.find(a => a.label === addon.label) ? { borderColor: settings.primaryColor, backgroundColor: `${settings.primaryColor}05` } : {}}>
+                   <div className="flex flex-col">
+                     <span className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{addon.label}</span>
+                     <span className="text-xs font-black mt-0.5" style={{ color: settings.primaryColor }}>+{settings.currency} {addon.price.toFixed(2)}</span>
+                   </div>
+                   <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedAddons.find(a => a.label === addon.label) ? 'text-white shadow-lg' : 'border-slate-200 bg-white'}`} style={selectedAddons.find(a => a.label === addon.label) ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
+                     {selectedAddons.find(a => a.label === addon.label) && <CheckIcon className="w-5 h-5" />}
+                   </div>
+                   <input type="checkbox" className="hidden" checked={!!selectedAddons.find(a => a.label === addon.label)}
+                    onChange={() => setSelectedAddons(prev => prev.find(a => a.label === addon.label) ? prev.filter(a => a.label !== addon.label) : [...prev, addon])} />
+                 </label>
+               ))}
+             </div>
+          </section>
+        )}
       </div>
-      <div className="flex-shrink-0 p-6 bg-white border-t rounded-t-[40px] shadow-[0_-15px_30px_rgba(0,0,0,0.05)] space-y-6">
-        <div className="flex items-center justify-between bg-gray-50 p-2 rounded-3xl">
-          <button onClick={() => setQuantity(q => Math.max(1, q-1))} className="w-16 h-16 bg-white border-2 border-gray-200 rounded-2xl text-3xl font-black flex items-center justify-center active:scale-95 transition-all text-gray-900 shadow-sm leading-none">−</button>
-          <span className="text-4xl font-black text-gray-900 tabular-nums">{quantity}</span>
-          <button onClick={() => setQuantity(q => q+1)} className="w-16 h-16 bg-white border-2 border-gray-200 rounded-2xl text-3xl font-black flex items-center justify-center active:scale-95 transition-all text-gray-900 shadow-sm leading-none">+</button>
+      <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+          <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
+          <span className={`text-4xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
+          <button onClick={() => setQuantity(q => q+1)} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
         </div>
-        <button 
-          onClick={() => onAddToCart(product, quantity)}
-          className="w-full bg-[#E4002B] text-white py-6 rounded-3xl text-2xl font-black uppercase tracking-tight shadow-[0_8px_20px_rgba(228,0,43,0.3)] active:scale-[0.98] transition-all flex items-center justify-between px-8"
-        >
-          <span>Add To Basket</span>
-          <span className="font-oswald">Rs {(product.price * quantity).toFixed(2)}</span>
+        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase tracking-tight shadow-2xl active:scale-[0.98] transition-all flex items-center justify-between px-10 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)]" style={{ backgroundColor: settings.primaryColor }}>
+          <span>Add To Basket</span><span className="font-oswald text-3xl">{settings.currency} {totalPrice.toFixed(2)}</span>
         </button>
       </div>
     </div>
@@ -337,464 +366,456 @@ const ProductDetailView: React.FC<{
 };
 
 const CartView: React.FC<{
+  settings: AppSettings;
   items: CartItem[];
   onUpdateQuantity: (id: string, delta: number) => void;
   onCheckout: () => void;
   onBack: () => void;
   total: number;
-}> = ({ items, onUpdateQuantity, onCheckout, onBack, total }) => {
+}> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => {
+  const isDark = settings.themeMode === 'dark';
   return (
-    <div className="h-screen bg-[#F9F9F9] flex flex-col animate-scale-up overflow-hidden">
-      <header className="flex-shrink-0 bg-white p-5 flex items-center justify-between border-b sticky top-0 z-10">
+    <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
+      <header className={`flex-shrink-0 p-6 flex items-center justify-between border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-4">
-           <button onClick={onBack} className="text-3xl bg-gray-100 text-gray-900 p-2 rounded-xl flex items-center justify-center w-12 h-12 flex-shrink-0">←</button>
-           <h2 className="text-2xl font-black font-oswald uppercase text-gray-900 tracking-tight">Basket</h2>
+           <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
+           <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2>
         </div>
-        <button onClick={onBack} className="text-[#E4002B] font-black uppercase text-xs border-2 border-[#E4002B] px-3 py-1 rounded-full">Add Items</button>
+        <button onClick={() => { if(confirm("Clear your basket?")) onUpdateQuantity('ALL', -9999); }} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-red-50 px-4 py-2 rounded-xl active:bg-red-100 transition-colors">Clear All</button>
       </header>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-8">
-        {items.map(item => (
-          <div key={item.id} className="bg-white p-5 rounded-[32px] border-2 border-gray-100 flex items-center space-x-4 shadow-sm">
-            <div className="w-20 h-20 bg-gray-50 rounded-2xl p-2 shrink-0">
-               <img src={item.image} className="w-full h-full object-contain" />
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64">
+        {items.map((item, idx) => {
+          const itemBasePrice = item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0);
+          return (
+            <div key={`${item.id}-${idx}`} className={`p-5 rounded-[2.5rem] border-2 flex items-center space-x-5 shadow-sm animate-scale-up transition-all ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`}>
+              <div className={`w-24 h-24 rounded-3xl p-3 shrink-0 shadow-inner border ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-50'}`}>
+                <img src={item.image} className="w-full h-full object-cover rounded-xl" />
+              </div>
+              <div className="flex-1">
+                 <div className="flex justify-between items-start mb-1">
+                   <div>
+                     <h3 className={`font-black text-lg leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</h3>
+                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{item.selectedSize.label}</p>
+                   </div>
+                   <button onClick={() => onUpdateQuantity(item.id, -item.quantity)} className={`font-black text-xs w-8 h-8 rounded-full flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-white/30 hover:bg-white/10' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>✕</button>
+                 </div>
+                 {item.selectedAddons.length > 0 && (
+                   <div className="flex flex-wrap gap-1 mt-2 mb-3">
+                     {item.selectedAddons.map(a => <span key={a.label} className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 border-white/5 text-white/40' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>{a.label}</span>)}
+                   </div>
+                 )}
+                 <div className="flex items-center justify-between mt-auto">
+                    <span className={`font-black text-xl font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {(itemBasePrice * item.quantity).toFixed(2)}</span>
+                    <div className={`flex items-center justify-between rounded-2xl px-2 py-1.5 border shadow-sm ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                      <button onClick={() => onUpdateQuantity(item.id, -1)} className={`w-10 h-10 font-black text-2xl active:scale-90 transition-all flex items-center justify-center rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
+                      <span className={`font-black tabular-nums min-w-[32px] text-center ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.quantity}</span>
+                      <button onClick={() => onUpdateQuantity(item.id, 1)} className={`w-10 h-10 font-black text-2xl active:scale-90 transition-all flex items-center justify-center rounded-xl shadow-sm border ${isDark ? 'bg-slate-800 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
+                    </div>
+                 </div>
+              </div>
             </div>
-            <div className="flex-1">
-               <div className="flex justify-between items-start mb-1">
-                 <h3 className="font-black text-gray-900 leading-tight">{item.name}</h3>
-                 <button onClick={() => onUpdateQuantity(item.id, -item.quantity)} className="text-gray-400 hover:text-red-500 font-black text-xl bg-gray-50 w-8 h-8 rounded-full flex items-center justify-center">✕</button>
-               </div>
-               <p className="text-[10px] text-gray-400 font-bold uppercase mb-3">Regular Size</p>
-               <div className="flex items-center justify-between">
-                  <span className="font-black text-lg text-gray-900">Rs {(item.price * item.quantity).toFixed(2)}</span>
-                  <div className="flex items-center space-x-4 bg-gray-100 rounded-2xl px-2 py-1.5 border border-gray-200">
-                    <button onClick={() => onUpdateQuantity(item.id, -1)} className="w-10 h-10 font-black text-xl text-gray-900 active:scale-90 transition-transform flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-200 leading-none">−</button>
-                    <span className="font-black text-gray-900 text-lg tabular-nums">{item.quantity}</span>
-                    <button onClick={() => onUpdateQuantity(item.id, 1)} className="w-10 h-10 font-black text-xl text-gray-900 active:scale-90 transition-transform flex items-center justify-center bg-white rounded-xl shadow-sm border border-gray-200 leading-none">+</button>
-                  </div>
-               </div>
+          );
+        })}
+        {items.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-6">
+            <span className="text-8xl grayscale opacity-30">🍗</span>
+            <p className="font-black uppercase tracking-[0.2em] text-sm text-center">Your basket is currently empty</p>
+            <button onClick={onBack} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg">Start Ordering</button>
+          </div>
+        )}
+      </div>
+      {items.length > 0 && (
+        <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+          <div className="space-y-4">
+            <div className="flex justify-between text-slate-400 font-black uppercase text-[10px] tracking-widest"><span>Subtotal</span><span>{settings.currency} {total.toFixed(2)}</span></div>
+            <div className={`flex justify-between text-4xl font-black pt-6 border-t-2 ${isDark ? 'border-white/5 text-white' : 'border-slate-50 text-slate-900'}`}>
+               <span className="font-oswald">TOTAL</span><span className="font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
             </div>
           </div>
+          <button onClick={onCheckout} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-[0_15px_40px_-10px_rgba(134,188,37,0.4)]">Check Out</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- New Checkout View ---
+const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onFinalize: (method: 'EAT_IN' | 'TAKE_AWAY') => void }> = ({ settings, onBack, onFinalize }) => {
+  const isDark = settings.themeMode === 'dark';
+  return (
+    <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
+      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+         <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
+         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Dining Mode</h2>
+      </header>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8">
+         <h3 className={`text-center font-black uppercase tracking-widest text-xs ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Where will you enjoy your food?</h3>
+         <div className="grid grid-cols-1 gap-6 w-full max-w-sm">
+            <button onClick={() => onFinalize('EAT_IN')} className={`p-10 rounded-[3rem] border-4 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+               <span className="text-7xl">🍽️</span>
+               <span className="text-2xl font-black uppercase tracking-tight">Eat In</span>
+            </button>
+            <button onClick={() => onFinalize('TAKE_AWAY')} className={`p-10 rounded-[3rem] border-4 flex flex-col items-center gap-4 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+               <span className="text-7xl">🥡</span>
+               <span className="text-2xl font-black uppercase tracking-tight">Take Away</span>
+            </button>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => void }> = ({ settings, onRestart }) => {
+  const isDark = settings.themeMode === 'dark';
+  return (
+    <div className={`h-full flex flex-col items-center justify-center p-12 text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      <div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-[0_20px_60px_-10px_rgba(134,188,37,0.6)]">
+        <CheckIcon className="w-20 h-20" />
+      </div>
+      <div className="space-y-3">
+        <h2 className={`text-4xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Received!</h2>
+        <p className={`text-lg font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Your food is being prepared. Enjoy!</p>
+      </div>
+      <div className={`p-8 rounded-3xl border-2 w-full max-w-xs space-y-1 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p>
+        <p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{Math.floor(Math.random() * 900) + 100}</p>
+      </div>
+      <button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl hover:scale-105 active:scale-95 transition-all">Back to Home</button>
+    </div>
+  );
+};
+
+const AdminView: React.FC<{
+  settings: AppSettings;
+  onSave: (s: AppSettings) => void;
+  onBack: () => void;
+  onReset: () => void;
+}> = ({ settings, onSave, onBack, onReset }) => {
+  const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
+  const [activeTab, setActiveTab] = useState<'General' | 'Categories' | 'Products'>('General');
+  const [editingOptionsId, setEditingOptionsId] = useState<string | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [activeImageProductId, setActiveImageProductId] = useState<string | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const isDark = localSettings.themeMode === 'dark';
+
+  const toggleOptionsEdit = (id: string) => {
+    setEditingOptionsId(prev => prev === id ? null : id);
+  };
+
+  const updateWorkingHour = (idx: number, field: keyof WorkingDay, value: any) => {
+    const next = [...localSettings.workingHours];
+    next[idx] = { ...next[idx], [field]: value };
+    setLocalSettings({ ...localSettings, workingHours: next });
+  };
+
+  const addHoliday = (date: string) => {
+    if (!date || localSettings.forceHolidays.includes(date)) return;
+    setLocalSettings({ ...localSettings, forceHolidays: [...localSettings.forceHolidays, date].sort() });
+  };
+
+  const removeHoliday = (date: string) => {
+    setLocalSettings({ ...localSettings, forceHolidays: localSettings.forceHolidays.filter(d => d !== date) });
+  };
+
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && activeImageProductId) {
+      try {
+        const base64 = await fileToBase64(file);
+        const nextProducts = [...localSettings.products];
+        const idx = nextProducts.findIndex(p => p.id === activeImageProductId);
+        if (idx !== -1) {
+          nextProducts[idx].image = base64;
+          setLocalSettings({ ...localSettings, products: nextProducts });
+        }
+      } catch (err) { console.error("Img Fail", err); }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+    setActiveImageProductId(null);
+  };
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return localSettings.products;
+    const q = productSearch.toLowerCase();
+    return localSettings.products.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+  }, [localSettings.products, productSearch]);
+
+  const inputStyles = `w-full border-2 p-4 rounded-2xl font-bold transition-all outline-none shadow-sm ${isDark ? 'bg-[#0F172A] border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-slate-300'}`;
+  const cardStyles = `p-6 border-2 rounded-3xl space-y-4 shadow-sm transition-all ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100 hover:border-slate-200'}`;
+
+  return (
+    <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-white text-slate-900'}`}>
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageFile} />
+
+      <header className={`flex-shrink-0 p-5 border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <div className="flex items-center space-x-3"><button onClick={onBack} className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}><BackIcon /></button><h2 className="font-black text-xl font-oswald uppercase tracking-tight">Admin</h2></div>
+        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl font-black text-xs shadow-xl active:scale-95 transition-all uppercase tracking-widest">Save Changes</button>
+      </header>
+      <div className={`flex-shrink-0 flex border-b overflow-x-auto no-scrollbar ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
+        {(['General', 'Categories', 'Products'] as const).map(t => (
+          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 min-w-[120px] py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === t ? 'border-b-4 border-blue-600 text-blue-600' : isDark ? 'text-white/30' : 'text-slate-400'}`}>{t}</button>
         ))}
       </div>
-      <div className="flex-shrink-0 p-8 bg-white border-t rounded-t-[40px] shadow-[0_-20px_40px_rgba(0,0,0,0.08)] space-y-6">
-        <div className="space-y-3">
-          <div className="flex justify-between text-gray-500 font-bold uppercase text-xs tracking-widest">
-             <span>Subtotal</span>
-             <span>Rs {total.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-3xl font-black pt-4 border-t-2 border-gray-50 text-gray-900">
-             <span>TOTAL</span>
-             <span className="text-[#E4002B] font-oswald">Rs {(total).toFixed(2)}</span>
-          </div>
-        </div>
-        <button onClick={onCheckout} className="w-full bg-[#86BC25] text-white py-6 rounded-3xl text-2xl font-black uppercase shadow-[0_10px_20px_rgba(134,188,37,0.3)] active:scale-[0.98] transition-all">
-          Next Step
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const CheckoutView: React.FC<{
-  onNext: (method: 'DINE_IN' | 'PICK_UP' | 'DELIVERY', payment: 'COUNTER' | 'CASH_ON_DELIVERY') => void;
-  onBack: () => void;
-}> = ({ onNext, onBack }) => {
-  const [method, setMethod] = useState<'DINE_IN' | 'PICK_UP' | 'DELIVERY'>('DINE_IN');
-  const [payment, setPayment] = useState<'COUNTER' | 'CASH_ON_DELIVERY'>('COUNTER');
-
-  useMemo(() => {
-    if (method === 'PICK_UP' || method === 'DINE_IN') {
-      setPayment('COUNTER');
-    } else {
-      setPayment('CASH_ON_DELIVERY');
-    }
-  }, [method]);
-
-  return (
-    <div className="h-screen bg-[#F9F9F9] flex flex-col animate-scale-up overflow-hidden">
-      <header className="flex-shrink-0 p-5 flex items-center space-x-4 border-b bg-white sticky top-0 z-20">
-        <button onClick={onBack} className="text-3xl bg-gray-100 text-gray-900 p-2 rounded-xl flex items-center justify-center w-12 h-12 flex-shrink-0">←</button>
-        <h2 className="text-xl font-black font-oswald uppercase text-gray-800">Order Method</h2>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-10 no-scrollbar">
-        <section className="space-y-6">
-           <h3 className="text-xs font-black uppercase text-gray-400 tracking-[0.2em] px-1">Where will you eat?</h3>
-           <div className="grid grid-cols-3 gap-3">
-              <button onClick={() => setMethod('DINE_IN')} className={`flex flex-col items-center justify-center p-4 rounded-[32px] border-4 transition-all shadow-sm ${method === 'DINE_IN' ? 'border-[#E4002B] bg-red-50' : 'border-gray-100 bg-white'}`}>
-                <span className="text-4xl mb-3">🍽️</span>
-                <span className={`font-black uppercase text-[10px] tracking-tight ${method === 'DINE_IN' ? 'text-[#E4002B]' : 'text-gray-900'}`}>Dine In</span>
-              </button>
-              <button onClick={() => setMethod('PICK_UP')} className={`flex flex-col items-center justify-center p-4 rounded-[32px] border-4 transition-all shadow-sm ${method === 'PICK_UP' ? 'border-[#E4002B] bg-red-50' : 'border-gray-100 bg-white'}`}>
-                <span className="text-4xl mb-3">🏪</span>
-                <span className={`font-black uppercase text-[10px] tracking-tight ${method === 'PICK_UP' ? 'text-[#E4002B]' : 'text-gray-900'}`}>Pick Up</span>
-              </button>
-              <button onClick={() => setMethod('DELIVERY')} className={`flex flex-col items-center justify-center p-4 rounded-[32px] border-4 transition-all shadow-sm ${method === 'DELIVERY' ? 'border-[#E4002B] bg-red-50' : 'border-gray-100 bg-white'}`}>
-                <span className="text-4xl mb-3">🛵</span>
-                <span className={`font-black uppercase text-[10px] tracking-tight ${method === 'DELIVERY' ? 'text-[#E4002B]' : 'text-gray-900'}`}>Delivery</span>
-              </button>
-           </div>
-        </section>
-        <section className="space-y-4">
-           <h3 className="text-xs font-black uppercase text-gray-400 tracking-[0.2em] px-1">How will you pay?</h3>
-           <div className="space-y-4 pb-12">
-              {method !== 'DELIVERY' ? (
-                <div className="w-full flex items-center p-6 rounded-2xl border-4 border-[#E4002B] bg-red-50 text-[#E4002B]">
-                  <span className="text-3xl mr-5">💵</span>
-                  <span className="flex-1 font-black uppercase text-sm tracking-tight text-left">Pay at Counter</span>
-                  <div className="w-8 h-8 rounded-full border-4 border-[#E4002B] bg-white flex items-center justify-center">
-                    <div className="w-3 h-3 bg-[#E4002B] rounded-full" />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full flex items-center p-6 rounded-2xl border-4 border-[#E4002B] bg-red-50 text-[#E4002B]">
-                  <span className="text-3xl mr-5">💸</span>
-                  <span className="flex-1 font-black uppercase text-sm tracking-tight text-left">Cash on Delivery</span>
-                  <div className="w-8 h-8 rounded-full border-4 border-[#E4002B] bg-white flex items-center justify-center">
-                    <div className="w-3 h-3 bg-[#E4002B] rounded-full" />
-                  </div>
-                </div>
-              )}
-           </div>
-        </section>
-      </div>
-      <div className="flex-shrink-0 p-8 border-t bg-white rounded-t-[40px] z-30">
-        <button onClick={() => onNext(method, payment)} className="w-full bg-[#E4002B] text-white py-7 rounded-3xl text-2xl font-black uppercase shadow-[0_15px_30px_rgba(228,0,43,0.3)] active:scale-[0.98] transition-all">
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const UserDetailsView: React.FC<{
-  isDelivery: boolean;
-  total: number;
-  onNext: (details: UserDetails) => void;
-  onBack: () => void;
-  initialValues: UserDetails;
-}> = ({ isDelivery, total, onNext, onBack, initialValues }) => {
-  const [name, setName] = useState(initialValues.name);
-  const [phone, setPhone] = useState(initialValues.phone);
-  const [address, setAddress] = useState(initialValues.address);
-  // Do not auto-populate with total as per user request. Use number or empty string.
-  const [cashTendered, setCashTendered] = useState<number | ''>(initialValues.cashTendered || '');
-
-  const numericTendered = cashTendered === '' ? 0 : Number(cashTendered);
-  const change = Math.max(0, numericTendered - total);
-  
-  const isFormValid = name.trim().length > 0 && 
-                     phone.trim().length >= 8 && 
-                     (!isDelivery || (address.trim().length > 0 && (cashTendered === '' || numericTendered >= total)));
-
-  return (
-    <div className="h-screen bg-[#F9F9F9] flex flex-col animate-scale-up overflow-hidden">
-      <header className="flex-shrink-0 p-5 flex items-center space-x-4 border-b bg-white sticky top-0 z-20">
-        <button onClick={onBack} className="text-3xl bg-gray-100 text-gray-900 p-2 rounded-xl flex items-center justify-center w-12 h-12 flex-shrink-0">←</button>
-        <h2 className="text-xl font-black font-oswald uppercase text-gray-800">Order Details</h2>
-      </header>
-      
-      <div className="flex-1 overflow-y-auto min-h-0 no-scrollbar">
-        <div className="p-6 space-y-8 pb-40">
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-gray-400 tracking-widest pl-1">Full Name</label>
-              <input 
-                type="text" 
-                placeholder="Your Name" 
-                className="w-full bg-white border-2 border-gray-100 rounded-2xl p-5 text-xl font-bold text-gray-900 focus:border-[#E4002B] outline-none transition-all shadow-sm"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-gray-400 tracking-widest pl-1">Mobile Number</label>
-              <input 
-                type="tel" 
-                placeholder="e.g. 57483399" 
-                className="w-full bg-white border-2 border-gray-100 rounded-2xl p-5 text-xl font-bold text-gray-900 focus:border-[#E4002B] outline-none transition-all shadow-sm"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            {isDelivery && (
-              <>
-                <div className="space-y-2 animate-scale-up">
-                  <label className="text-xs font-black uppercase text-gray-400 tracking-widest pl-1">Delivery Address</label>
-                  <textarea 
-                    rows={2}
-                    placeholder="Where should we send the food?" 
-                    className="w-full bg-white border-2 border-gray-100 rounded-2xl p-5 text-lg font-bold text-gray-900 focus:border-[#E4002B] outline-none transition-all shadow-sm resize-none"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </div>
-                
-                <div className="bg-white border-4 border-amber-400 rounded-[32px] p-6 space-y-4 shadow-xl animate-scale-up">
-                   <h3 className="text-sm font-black uppercase text-amber-500 tracking-widest text-center">Cash on Delivery Tender</h3>
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-gray-400 block text-center">Amount you will give driver (Rs)</label>
-                      <input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="Optional"
-                        className="w-full text-center bg-gray-50 border-2 border-gray-100 rounded-2xl p-4 text-3xl font-black text-gray-900 focus:border-[#E4002B] outline-none transition-all"
-                        value={cashTendered}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCashTendered(val === '' ? '' : parseFloat(val));
-                        }}
-                      />
-                   </div>
-                   <div className="flex items-center justify-between px-2 pt-2">
-                      <div className="text-center">
-                         <span className="block text-[8px] font-black text-gray-400 uppercase">Bill Amount</span>
-                         <span className="font-bold text-gray-900">Rs {total.toFixed(2)}</span>
-                      </div>
-                      <div className="text-center bg-[#86BC25] text-white px-4 py-2 rounded-2xl shadow-lg transform scale-110">
-                         <span className="block text-[8px] font-black uppercase opacity-80">Driver gives change</span>
-                         <span className="text-xl font-black font-oswald tracking-wide">Rs {change.toFixed(2)}</span>
-                      </div>
-                   </div>
-                   {cashTendered !== '' && numericTendered < total && numericTendered > 0 && (
-                     <p className="text-[10px] text-red-500 font-black text-center uppercase tracking-tight">Amount must cover the bill total!</p>
-                   )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex-shrink-0 p-8 border-t bg-white rounded-t-[40px] z-30 shadow-[0_-15px_30px_rgba(0,0,0,0.05)]">
-        <button 
-          onClick={() => onNext({ name, phone, address, cashTendered: numericTendered })}
-          disabled={!isFormValid}
-          className={`w-full py-7 rounded-3xl text-2xl font-black uppercase shadow-lg transition-all ${
-            isFormValid ? 'bg-[#E4002B] text-white shadow-[0_15px_30px_rgba(228,0,43,0.3)] active:scale-[0.98]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Review Order
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const FinalSummaryView: React.FC<{
-  items: CartItem[];
-  total: number;
-  orderMethod: 'DINE_IN' | 'PICK_UP' | 'DELIVERY';
-  userDetails: UserDetails;
-  onConfirm: () => void;
-  onBack: () => void;
-}> = ({ items, total, orderMethod, userDetails, onConfirm, onBack }) => {
-  const methodLabel = orderMethod === 'DINE_IN' ? 'Dine In' : orderMethod === 'PICK_UP' ? 'Pick Up' : 'Delivery';
-  const methodIcon = orderMethod === 'DINE_IN' ? '🍽️' : orderMethod === 'PICK_UP' ? '🏪' : '🛵';
-  const change = Math.max(0, userDetails.cashTendered - total);
-
-  return (
-    <div className="h-screen bg-[#F9F9F9] flex flex-col animate-scale-up overflow-hidden">
-      <header className="flex-shrink-0 p-5 flex items-center space-x-4 border-b bg-white sticky top-0 z-20">
-        <button onClick={onBack} className="text-3xl bg-gray-100 text-gray-900 p-2 rounded-xl flex items-center justify-center w-12 h-12 flex-shrink-0">←</button>
-        <h2 className="text-xl font-black font-oswald uppercase text-gray-800">Confirm Order</h2>
-      </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar pb-10">
-        <div className="bg-white p-6 rounded-[32px] border-2 border-gray-100 space-y-4 shadow-sm">
-           <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-              <span className="text-xs font-black uppercase text-gray-400 tracking-widest">Order Details</span>
-              <span className="bg-[#E4002B] text-white text-[10px] font-black px-3 py-1 rounded-full uppercase italic">{methodIcon} {methodLabel}</span>
-           </div>
-           <div className="space-y-2">
-              <div className="flex flex-col">
-                 <span className="text-[10px] font-black uppercase text-gray-300">Customer</span>
-                 <span className="font-black text-gray-900">{userDetails.name}</span>
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-80">
+        {activeTab === 'General' && (
+          <div className="space-y-10 animate-scale-up">
+            <section className="space-y-4">
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Brand Identity</h3>
+              <div className="space-y-4">
+                <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400 px-1">Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
+                <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400 px-1">Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
               </div>
-              <div className="flex flex-col">
-                 <span className="text-[10px] font-black uppercase text-gray-300">Mobile</span>
-                 <span className="font-black text-gray-900">{userDetails.phone}</span>
+            </section>
+            
+            <section className="space-y-4">
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Theme & Presets</h3>
+              <div className={cardStyles}>
+                <div className="flex gap-2">
+                  <button onClick={() => setLocalSettings({...localSettings, themeMode: 'light'})} className={`flex-1 py-4 rounded-2xl border-2 font-black flex items-center justify-center gap-3 transition-all ${localSettings.themeMode === 'light' ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 grayscale opacity-40'}`}><SunIcon /> LIGHT</button>
+                  <button onClick={() => setLocalSettings({...localSettings, themeMode: 'dark'})} className={`flex-1 py-4 rounded-2xl border-2 font-black flex items-center justify-center gap-3 transition-all ${localSettings.themeMode === 'dark' ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 grayscale opacity-40'}`}><MoonIcon /> DARK</button>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  {THEME_PRESETS.map(t => (
+                    <button key={t.id} onClick={() => setLocalSettings({...localSettings, primaryColor: t.color})} className={`w-12 h-12 rounded-full border-4 transition-all shadow-lg ${localSettings.primaryColor === t.color ? 'border-blue-600 scale-110' : 'border-white opacity-80'}`} style={{ backgroundColor: t.color }} />
+                  ))}
+                </div>
               </div>
-              {orderMethod === 'DELIVERY' && (
-                <>
-                  <div className="flex flex-col pt-2 border-t border-gray-50">
-                     <span className="text-[10px] font-black uppercase text-gray-300">Delivery Address</span>
-                     <span className="font-bold text-gray-700 leading-tight">{userDetails.address}</span>
-                  </div>
-                  {userDetails.cashTendered > 0 && (
-                    <div className="grid grid-cols-2 gap-3 pt-3">
-                       <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                          <span className="block text-[8px] font-black uppercase text-gray-400">Cash to Give</span>
-                          <span className="font-black text-gray-900">Rs {userDetails.cashTendered.toFixed(2)}</span>
-                       </div>
-                       <div className="bg-[#86BC25]/10 p-3 rounded-2xl border border-[#86BC25]/20">
-                          <span className="block text-[8px] font-black uppercase text-[#86BC25]">Expected Change</span>
-                          <span className="font-black text-[#86BC25]">Rs {change.toFixed(2)}</span>
-                       </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Operations</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {localSettings.workingHours.map((wh, idx) => (
+                  <div key={wh.day} className={cardStyles}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-black uppercase tracking-widest text-xs">{wh.day}</span>
+                      <input type="checkbox" checked={wh.isOpen} onChange={e => updateWorkingHour(idx, 'isOpen', e.target.checked)} className="w-6 h-6 rounded-lg accent-blue-600" />
                     </div>
-                  )}
-                </>
-              )}
-           </div>
-        </div>
+                    {wh.isOpen && (
+                      <div className="flex items-center gap-3 pt-2">
+                        <input type="time" value={wh.openTime} onChange={e => updateWorkingHour(idx, 'openTime', e.target.value)} className={`${inputStyles} py-2 text-center text-xs`} />
+                        <span className="font-black text-[9px] text-slate-300">TO</span>
+                        <input type="time" value={wh.closeTime} onChange={e => updateWorkingHour(idx, 'closeTime', e.target.value)} className={`${inputStyles} py-2 text-center text-xs`} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
 
-        <div className="bg-white p-6 rounded-[32px] border-2 border-gray-100 space-y-4 shadow-sm">
-           <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-              <span className="text-xs font-black uppercase text-gray-400 tracking-widest">Items ({items.length})</span>
-           </div>
-           <div className="space-y-3">
-              {items.map(item => (
-                <div key={item.id} className="flex justify-between items-center">
-                   <div className="flex items-center space-x-3">
-                      <div className="bg-gray-50 w-8 h-8 rounded-lg flex items-center justify-center font-black text-[#E4002B] text-xs">x{item.quantity}</div>
-                      <span className="font-bold text-gray-900 text-sm truncate max-w-[150px]">{item.name}</span>
-                   </div>
-                   <span className="font-black text-gray-900 text-sm">Rs {(item.price * item.quantity).toFixed(2)}</span>
+            <section className="space-y-4">
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Special Holidays</h3>
+              <div className={cardStyles}>
+                <input type="date" className={`${inputStyles} py-3 text-sm`} onChange={(e) => { addHoliday(e.target.value); e.target.value = ''; }} />
+                <div className="flex flex-wrap gap-2">
+                  {localSettings.forceHolidays.map(d => (
+                    <span key={d} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black">
+                      {d} <button onClick={() => removeHoliday(d)} className="text-white/50 hover:text-white">✕</button>
+                    </span>
+                  ))}
                 </div>
-              ))}
-           </div>
-           <div className="pt-4 border-t-2 border-gray-50 flex justify-between items-center">
-              <span className="font-black uppercase text-gray-900">Total Bill</span>
-              <span className="text-2xl font-black text-[#E4002B] font-oswald">Rs {total.toFixed(2)}</span>
-           </div>
-        </div>
-      </div>
-      <div className="flex-shrink-0 p-8 border-t bg-white rounded-t-[40px] z-30 shadow-[0_-15px_30px_rgba(0,0,0,0.05)]">
-        <button onClick={onConfirm} className="w-full bg-[#86BC25] text-white py-7 rounded-3xl text-3xl font-black uppercase shadow-[0_15px_30px_rgba(134,188,37,0.3)] active:scale-[0.98] transition-all">
-          Place Order
-        </button>
+              </div>
+            </section>
+
+            <section className="pt-8">
+              <button onClick={() => { if(confirm("This will wipe all data. Confirm factory reset?")) onReset(); }} className="w-full border-2 border-red-500 text-red-500 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 active:bg-red-100 transition-all">FACTORY RESET DEVICE</button>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'Categories' && (
+          <div className="space-y-6 animate-scale-up">
+            {localSettings.categories.map((cat, idx) => (
+              <div key={cat.id} className={cardStyles}>
+                <div className="flex gap-4">
+                  <input placeholder="Emoji" className={`${inputStyles} w-24 text-center text-2xl`} value={cat.icon} onChange={e => { const next = [...localSettings.categories]; next[idx].icon = e.target.value; setLocalSettings({...localSettings, categories: next}); }} />
+                  <input placeholder="Name" className={inputStyles} value={cat.label} onChange={e => { const next = [...localSettings.categories]; next[idx].label = e.target.value; setLocalSettings({...localSettings, categories: next}); }} />
+                </div>
+                <button onClick={() => { setLocalSettings({...localSettings, categories: localSettings.categories.filter((_, i) => i !== idx)}); }} className="text-red-500 text-[10px] font-black uppercase flex items-center gap-2 px-1"><TrashIcon className="w-3.5 h-3.5" /> Remove Category</button>
+              </div>
+            ))}
+            <button onClick={() => setLocalSettings({...localSettings, categories: [...localSettings.categories, { id: 'CAT'+Date.now(), label: 'New Category', icon: '❓' }]})} className="w-full border-2 border-dashed border-blue-400 p-6 rounded-[2.5rem] font-black text-blue-500 flex items-center justify-center gap-3 hover:bg-blue-50 transition-all"><PlusIcon /> ADD CATEGORY</button>
+          </div>
+        )}
+
+        {activeTab === 'Products' && (
+          <div className="space-y-8 animate-scale-up">
+            <div className="relative mb-6">
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input type="text" placeholder="Search products catalog..." className={`${inputStyles} pl-12`} value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {filteredProducts.map((prod) => {
+                const globalIdx = localSettings.products.findIndex(p => p.id === prod.id);
+                return (
+                  <div key={prod.id} className={cardStyles}>
+                    <div className="flex gap-4">
+                      <div className="w-20 h-20 bg-slate-200 rounded-2xl overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                        {prod.image ? <img src={prod.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400">🖼️</div>}
+                      </div>
+                      <input className={inputStyles} value={prod.name} onChange={e => { const next = [...localSettings.products]; next[globalIdx].name = e.target.value; setLocalSettings({...localSettings, products: next}); }} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">{localSettings.currency}</span>
+                        <input type="number" className={`${inputStyles} pl-12`} value={prod.price} onChange={e => { const next = [...localSettings.products]; next[globalIdx].price = parseFloat(e.target.value) || 0; setLocalSettings({...localSettings, products: next}); }} />
+                      </div>
+                      <select className={inputStyles} value={prod.category} onChange={e => { const next = [...localSettings.products]; next[globalIdx].category = e.target.value; setLocalSettings({...localSettings, products: next}); }}>
+                        {localSettings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button onClick={() => { setActiveImageProductId(prod.id); fileInputRef.current?.click(); }} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><UploadIcon /> Upload</button>
+                      <button onClick={() => { setActiveImageProductId(prod.id); cameraInputRef.current?.click(); }} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><CameraIcon /> Camera</button>
+                    </div>
+
+                    <button onClick={() => toggleOptionsEdit(prod.id)} className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2 transition-all ${editingOptionsId === prod.id ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'border-slate-100 text-slate-400'}`}>
+                      {editingOptionsId === prod.id ? 'HIDE EDITOR' : 'EDIT SIZES & ADDONS'}
+                    </button>
+
+                    {editingOptionsId === prod.id && (
+                      <div className="mt-4 p-6 bg-white rounded-3xl border-2 border-slate-100 space-y-8 animate-scale-up shadow-inner">
+                        <div className="space-y-4">
+                           <div className="flex justify-between items-center"><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sizes</h4><button onClick={() => { const next = [...localSettings.products]; next[globalIdx].sizes.push({ label: 'New', price: 0 }); setLocalSettings({...localSettings, products: next}); }} className="bg-blue-600 text-white p-1.5 rounded-lg shadow-md"><PlusIcon className="w-3.5 h-3.5" /></button></div>
+                           <div className="space-y-2">
+                             {prod.sizes.map((s, si) => (
+                               <div key={si} className="flex gap-2 animate-scale-up">
+                                 <input className={`${inputStyles} py-2 text-xs flex-1`} value={s.label} onChange={e => { const next = [...localSettings.products]; next[globalIdx].sizes[si].label = e.target.value; setLocalSettings({...localSettings, products: next}); }} />
+                                 <input type="number" className={`${inputStyles} py-2 text-xs w-24`} value={s.price} onChange={e => { const next = [...localSettings.products]; next[globalIdx].sizes[si].price = parseFloat(e.target.value) || 0; setLocalSettings({...localSettings, products: next}); }} />
+                                 <button onClick={() => { const next = [...localSettings.products]; next[globalIdx].sizes = next[globalIdx].sizes.filter((_, i) => i !== si); setLocalSettings({...localSettings, products: next}); }} className="text-red-500 px-2">✕</button>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                        <div className="space-y-4 pt-4 border-t border-slate-100">
+                           <div className="flex justify-between items-center"><h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Addons</h4><button onClick={() => { const next = [...localSettings.products]; next[globalIdx].addons.push({ label: 'New', price: 0 }); setLocalSettings({...localSettings, products: next}); }} className="bg-green-600 text-white p-1.5 rounded-lg shadow-md"><PlusIcon className="w-3.5 h-3.5" /></button></div>
+                           <div className="space-y-2">
+                             {prod.addons.map((a, ai) => (
+                               <div key={ai} className="flex gap-2 animate-scale-up">
+                                 <input className={`${inputStyles} py-2 text-xs flex-1`} value={a.label} onChange={e => { const next = [...localSettings.products]; next[globalIdx].addons[ai].label = e.target.value; setLocalSettings({...localSettings, products: next}); }} />
+                                 <input type="number" className={`${inputStyles} py-2 text-xs w-24`} value={a.price} onChange={e => { const next = [...localSettings.products]; next[globalIdx].addons[ai].price = parseFloat(e.target.value) || 0; setLocalSettings({...localSettings, products: next}); }} />
+                                 <button onClick={() => { const next = [...localSettings.products]; next[globalIdx].addons = next[globalIdx].addons.filter((_, i) => i !== ai); setLocalSettings({...localSettings, products: next}); }} className="text-red-500 px-2">✕</button>
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                      </div>
+                    )}
+                    <button onClick={() => { if(confirm("Permanently delete?")) setLocalSettings({...localSettings, products: localSettings.products.filter(p => p.id !== prod.id)}); }} className="w-full text-red-500 text-[10px] font-black uppercase pt-2 opacity-50 hover:opacity-100 transition-opacity">Remove Product From System</button>
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={() => setLocalSettings({...localSettings, products: [...localSettings.products, { id: 'P'+Date.now(), name: 'New Menu Item', price: 0, image: '', category: localSettings.categories[0]?.id || '', description: 'Fresh and delicious.', sizes: [{label: 'Regular', price: 0}], addons: [] }]})} className="w-full border-2 border-dashed border-slate-300 p-8 rounded-[3rem] font-black text-slate-400 flex items-center justify-center gap-3 hover:bg-slate-50 transition-all uppercase tracking-[0.2em] text-xs"><PlusIcon /> ADD NEW PRODUCT</button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-
-const SuccessView: React.FC<{ onReset: () => void }> = ({ onReset }) => (
-  <div className="h-screen bg-[#E4002B] flex flex-col items-center justify-center p-10 space-y-10 animate-scale-up text-white overflow-hidden">
-    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-[#E4002B] text-7xl shadow-2xl animate-[bounce_1.5s_infinite]">✓</div>
-    <div className="text-center space-y-3">
-       <h1 className="text-5xl font-black font-oswald uppercase tracking-tighter leading-none">Order Sent!</h1>
-       <p className="text-xl font-medium opacity-90">Thank you for choosing KFC</p>
-    </div>
-    <div className="bg-white p-10 rounded-[40px] w-full text-center space-y-2 shadow-2xl">
-       <div className="text-8xl font-black text-gray-900 font-oswald">729</div>
-       <p className="text-xs font-black uppercase text-gray-400 tracking-[0.3em]">Order Number</p>
-    </div>
-    <button onClick={onReset} className="w-full bg-white text-[#E4002B] py-6 rounded-3xl text-2xl font-black uppercase shadow-xl active:scale-95 transition-all">New Order</button>
-  </div>
-);
 
 // --- Main App ---
 
 export default function App() {
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    const saved = localStorage.getItem('kiosk_settings');
+    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+  });
   const [view, setView] = useState<AppView>(AppView.LANDING);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  
-  const [orderMethod, setOrderMethod] = useState<'DINE_IN' | 'PICK_UP' | 'DELIVERY'>('DINE_IN');
-  const [paymentMethod, setPaymentMethod] = useState<'COUNTER' | 'CASH_ON_DELIVERY'>('COUNTER');
-  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', phone: '', address: '', cashTendered: 0 });
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('kiosk_settings', JSON.stringify(settings));
+  }, [settings]);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   const cartTotal = useMemo(() => {
-    const rawTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    // Fix floating point precision for currency
-    return Math.round(rawTotal * 100) / 100;
+    return Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0)) * item.quantity, 0) * 100) / 100;
   }, [cart]);
   
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
 
-  const addToCart = useCallback((product: Product, quantity: number) => {
+  const addToCart = useCallback((product: Product, quantity: number, size: SizeOption, addons: AddonOption[]) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+      const idx = prev.findIndex(i => i.id === product.id && i.selectedSize.label === size.label && i.selectedAddons.length === addons.length && i.selectedAddons.every((a, i) => a.label === addons[i]?.label));
+      if (idx > -1) { 
+        const n = [...prev]; n[idx].quantity += quantity; return n; 
       }
-      return [...prev, { ...product, quantity }];
+      return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }];
     });
+    showToast(`${quantity}x ${product.name} added`);
     setView(AppView.MENU);
-  }, []);
+  }, [showToast]);
 
   const updateQuantity = useCallback((id: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQ = Math.max(0, item.quantity + delta);
-        return { ...item, quantity: newQ };
-      }
-      return item;
-    }).filter(item => item.quantity > 0));
+    setCart(prev => {
+      if (id === 'ALL') return [];
+      return prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0);
+    });
   }, []);
 
-  const reset = useCallback(() => {
+  const handleCheckout = () => {
+    setView(AppView.CHECKOUT);
+  };
+
+  const handleFinalizeOrder = (method: 'EAT_IN' | 'TAKE_AWAY') => {
+    // In a real app, this would send data (method + cart) to POS server
+    setView(AppView.ORDER_CONFIRMED);
+    showToast(`Order #${Math.floor(Math.random()*100)} submitted!`);
+  };
+
+  const restartApp = useCallback(() => {
     setCart([]);
-    setUserDetails({ name: '', phone: '', address: '', cashTendered: 0 });
     setView(AppView.LANDING);
   }, []);
 
   return (
-    <div className="max-w-md mx-auto h-screen bg-white overflow-hidden relative shadow-2xl">
-      {view === AppView.LANDING && <LandingView onStart={() => setView(AppView.MENU)} />}
+    <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden transition-colors duration-300 ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      {toast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] z-[100] animate-scale-up shadow-[0_20px_40px_rgba(0,0,0,0.3)] backdrop-blur-md border border-white/10">
+          {toast}
+        </div>
+      )}
+
+      {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.MENU)} />}
       
       {view === AppView.MENU && (
-        <MenuView 
-          cartTotal={cartTotal}
-          cartCount={cartCount}
-          onRestart={reset}
-          onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }}
-          onGoToCart={() => setView(AppView.CART)}
-        />
+        <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={restartApp} onAdmin={() => setView(AppView.ADMIN)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />
       )}
-
+      
       {view === AppView.PRODUCT_DETAIL && selectedProduct && (
-        <ProductDetailView 
-          product={selectedProduct}
-          onBack={() => setView(AppView.MENU)}
-          onAddToCart={addToCart}
-        />
+        <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />
       )}
-
+      
       {view === AppView.CART && (
-        <CartView 
-          items={cart}
-          total={cartTotal}
-          onBack={() => setView(AppView.MENU)}
-          onUpdateQuantity={updateQuantity}
-          onCheckout={() => setView(AppView.CHECKOUT)}
-        />
+        <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={handleCheckout} />
       )}
 
       {view === AppView.CHECKOUT && (
-        <CheckoutView 
-          onBack={() => setView(AppView.CART)}
-          onNext={(method, payment) => {
-            setOrderMethod(method);
-            setPaymentMethod(payment);
-            setView(AppView.USER_DETAILS);
-          }}
-        />
+        <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onFinalize={handleFinalizeOrder} />
       )}
 
-      {view === AppView.USER_DETAILS && (
-        <UserDetailsView 
-          isDelivery={orderMethod === 'DELIVERY'}
-          total={cartTotal}
-          initialValues={userDetails}
-          onBack={() => setView(AppView.CHECKOUT)}
-          onNext={(details) => {
-            setUserDetails(details);
-            setView(AppView.FINAL_SUMMARY);
-          }}
-        />
+      {view === AppView.ORDER_CONFIRMED && (
+        <OrderConfirmedView settings={settings} onRestart={restartApp} />
       )}
-
-      {view === AppView.FINAL_SUMMARY && (
-        <FinalSummaryView 
-          items={cart}
-          total={cartTotal}
-          orderMethod={orderMethod}
-          userDetails={userDetails}
-          onBack={() => setView(AppView.USER_DETAILS)}
-          onConfirm={() => setView(AppView.ORDER_CONFIRMED)}
-        />
+      
+      {view === AppView.ADMIN && (
+        <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { setSettings(s); showToast("Success: Database synced"); setView(AppView.MENU); }} onReset={() => { setSettings(DEFAULT_SETTINGS); localStorage.removeItem('kiosk_settings'); showToast("System reset performed"); setView(AppView.LANDING); }} />
       )}
-
-      {view === AppView.ORDER_CONFIRMED && <SuccessView onReset={reset} />}
     </div>
   );
 }
