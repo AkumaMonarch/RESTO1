@@ -1,4 +1,3 @@
-
 export type CategoryType = string;
 
 export interface Category {
@@ -21,7 +20,7 @@ export interface AddonOption {
 export interface Product {
   id: string;
   name: string;
-  price: number; // Base price (usually for default size)
+  price: number;
   image: string;
   category: CategoryType;
   description: string;
@@ -46,7 +45,7 @@ export interface AppSettings {
   categories: Category[];
   products: Product[];
   workingHours: WorkingDay[];
-  forceHolidays: string[]; // YYYY-MM-DD formatted strings
+  forceHolidays: string[];
 }
 
 export interface CartItem extends Product {
@@ -62,6 +61,7 @@ export interface UserDetails {
   phone: string;
   address: string;
   diningMode: DiningMode;
+  collectionTime: string;
 }
 
 export enum AppView {
