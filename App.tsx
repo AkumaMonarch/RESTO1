@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
@@ -150,7 +149,7 @@ const MenuView: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
-  const isDark = settings.themeMode === 'dark';
+  const isDark = settings.themeMode === 'dark' || true; // Force dark theme for kiosk look as per screenshot
 
   const isHoliday = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -219,22 +218,39 @@ const MenuView: React.FC<{
 
       <main {...mainScrollProps} className="flex-1 overflow-y-auto p-3 no-scrollbar pb-32 smooth-scroll relative">
         <div className="scroll-shimmer-v"></div>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map(p => (
             <div key={p.id} onClick={() => onSelectProduct(p)} 
-              className={`relative rounded-[2rem] border-2 transition-all active:scale-[0.98] flex items-stretch p-2 overflow-hidden min-h-[130px] cursor-pointer shadow-sm ${p.isBestseller ? 'border-amber-400 bg-amber-400/5' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
-              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[8px] font-black px-3 py-1 rounded-br-xl z-10 uppercase italic shadow-md">Best Seller</div>}
-              <div className={`w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center rounded-2xl mr-3 shrink-0 self-center overflow-hidden shadow-inner ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50'}`}>
-                <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
-              </div>
-              <div className="flex-1 flex flex-col py-1 overflow-hidden">
-                <div className="flex-1 mb-1">
-                  <h3 className={`text-sm font-black leading-tight mb-0.5 pr-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{p.name}</h3>
-                  <p className={`text-[10px] line-clamp-2 leading-relaxed opacity-70 ${isDark ? 'text-white' : 'text-slate-500'}`}>{p.description}</p>
+              className={`relative rounded-[2rem] border-2 transition-all active:scale-[0.98] flex items-stretch p-2.5 overflow-hidden min-h-[140px] cursor-pointer shadow-lg ${p.isBestseller ? 'border-amber-400 bg-amber-400/10' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
+              
+              {p.isBestseller && (
+                <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic tracking-tighter shadow-md">
+                  Best Seller
                 </div>
+              )}
+
+              <div className={`w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center rounded-2xl mr-4 shrink-0 self-center overflow-hidden shadow-2xl ${isDark ? 'bg-[#0F172A]/80' : 'bg-slate-50'}`}>
+                <img src={p.image} alt={p.name} className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500" loading="lazy" />
+              </div>
+              
+              <div className="flex-1 flex flex-col py-2 overflow-hidden">
+                <div className="flex-1 mb-1">
+                  <h3 className={`text-lg font-black leading-tight mb-1 pr-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{p.name}</h3>
+                  <p className={`text-[11px] line-clamp-2 leading-relaxed opacity-60 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{p.description}</p>
+                </div>
+                
                 <div className="flex justify-between items-center mt-auto">
-                  <span className={`text-base font-black whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {p.price.toFixed(2)}</span>
-                  <button disabled={isHoliday} className={`text-white w-9 h-9 rounded-xl flex items-center justify-center text-xl font-bold shadow-lg active:scale-90 transition-all flex-shrink-0 leading-none pb-0.5 ${isHoliday ? 'opacity-30' : ''}`} style={{ backgroundColor: settings.primaryColor }}>+</button>
+                  <span className={`text-xl font-black font-oswald tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {settings.currency} {p.price.toFixed(2)}
+                  </span>
+                  
+                  <button 
+                    disabled={isHoliday} 
+                    className={`text-white w-11 h-11 rounded-full flex items-center justify-center text-2xl font-bold shadow-2xl active:scale-90 transition-all flex-shrink-0 leading-none pb-1 ${isHoliday ? 'opacity-30' : ''}`} 
+                    style={{ backgroundColor: settings.primaryColor }}
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
