@@ -28,23 +28,9 @@ const SearchIcon = () => (
   </svg>
 );
 
-const MoonIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-  </svg>
-);
-
-const SunIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="5"></circle>
-    <line x1="12" y1="1" x2="12" y2="3"></line>
-    <line x1="12" y1="21" x2="12" y2="23"></line>
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-    <line x1="1" y1="12" x2="3" y2="12"></line>
-    <line x1="21" y1="12" x2="23" y2="12"></line>
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="20 6 9 17 4 12"></polyline>
   </svg>
 );
 
@@ -73,13 +59,27 @@ const UploadIcon = ({ className }: { className?: string }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v-4"></path>
     <polyline points="17 8 12 3 7 8"></polyline>
-    <line x1="12" i="3" x2="12" y2="15"></line>
+    <line x1="12" y1="3" x2="12" y2="15"></line>
   </svg>
 );
 
-const CheckIcon = ({ className }: { className?: string }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <polyline points="20 6 9 17 4 12"></polyline>
+const SunIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="5"></circle>
+    <line x1="12" y1="1" x2="12" y2="3"></line>
+    <line x1="12" y1="21" x2="12" y2="23"></line>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+    <line x1="1" y1="12" x2="3" y2="12"></line>
+    <line x1="21" y1="12" x2="23" y2="12"></line>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
   </svg>
 );
 
@@ -136,34 +136,31 @@ function useGrabToScroll(direction: 'horizontal' | 'vertical' = 'horizontal') {
 // --- Views ---
 
 const LandingView: React.FC<{ settings: AppSettings; onStart: () => void }> = ({ settings, onStart }) => (
-  <div className="h-full w-full flex flex-col items-center justify-center p-8 space-y-12 animate-scale-up cursor-pointer" style={{ backgroundColor: settings.primaryColor }} onClick={onStart}>
-    <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] transform transition-transform active:scale-95">
-      <h1 className="text-5xl font-black tracking-tighter italic select-none" style={{ color: settings.primaryColor }}>{settings.brandName}</h1>
+  <div className="h-full w-full flex flex-col items-center justify-center p-8 space-y-12 animate-scale-up cursor-pointer relative overflow-hidden" style={{ backgroundColor: settings.primaryColor }} onClick={onStart}>
+    <div className="absolute inset-0 opacity-10">
+      <div className="grid grid-cols-4 gap-4 rotate-12 scale-150">
+        {settings.products.slice(0, 16).map((p, i) => (
+          <img key={i} src={p.image} className="w-full aspect-square object-cover rounded-3xl" alt="" />
+        ))}
+      </div>
     </div>
-    <div className="text-center space-y-4 text-white">
-      <h2 className="text-4xl font-black font-oswald tracking-tight uppercase">Touch to start</h2>
-      <p className="text-xl opacity-90 font-medium">Your feast awaits</p>
+    
+    <div className="bg-white p-10 rounded-[3rem] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.5)] transform transition-all active:scale-95 z-10">
+      <h1 className="text-6xl font-black tracking-tighter italic select-none leading-none text-center" style={{ color: settings.primaryColor }}>
+        {settings.brandName}
+      </h1>
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-center mt-4 opacity-30">Authentic Flavors</p>
     </div>
-    <div className="grid grid-cols-2 gap-6 w-full max-sm:max-w-xs">
-      {settings.categories.slice(0, 4).map((cat, idx) => (
-        <div key={cat.id} className="relative aspect-square rounded-[2rem] overflow-hidden border-4 border-white/20 shadow-2xl transition-transform active:scale-95">
-          {cat.backgroundImage ? (
-            <div className="absolute inset-0 w-full h-full overflow-hidden">
-              <img 
-                src={cat.backgroundImage} 
-                alt={cat.label} 
-                className="w-full h-full object-cover animate-breathing-hero fade-edges-mask"
-                style={{ animationDelay: `${idx * 1.2}s` }}
-              />
-            </div>
-          ) : (
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-md" />
-          )}
-        </div>
-      ))}
+    
+    <div className="text-center space-y-4 text-white z-10">
+      <h2 className="text-5xl font-black font-oswald tracking-tight uppercase leading-none">Tap to order</h2>
+      <p className="text-xl opacity-80 font-medium">Fresh. Fast. Delicious.</p>
     </div>
-    <div className="flex flex-col items-center animate-bounce mt-8 text-white">
-      <div className="w-14 h-14 rounded-full border-4 border-white/30 flex items-center justify-center backdrop-blur-sm shadow-lg"><span className="text-2xl font-bold">↓</span></div>
+
+    <div className="flex flex-col items-center animate-bounce mt-12 text-white z-10">
+      <div className="w-16 h-16 rounded-full border-4 border-white/40 flex items-center justify-center backdrop-blur-md shadow-2xl">
+        <span className="text-3xl font-bold">↓</span>
+      </div>
     </div>
   </div>
 );
@@ -227,15 +224,11 @@ const MenuView: React.FC<{
       {isHoliday && (
         <div className="bg-amber-100 text-amber-900 px-4 py-3 text-sm font-bold border-b border-amber-200 flex items-center justify-center gap-3 animate-pulse">
           <span className="text-xl">⚠️</span>
-          <span className="uppercase tracking-tight">Today is a holiday. Store closed for orders.</span>
+          <span className="uppercase tracking-tight text-center">Store Closed Today. Catalog Browsing Only.</span>
         </div>
       )}
 
       <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
-        <div className={`absolute inset-0 bg-animated-nav pointer-events-none transition-opacity duration-500 ${isDark ? 'opacity-[0.12]' : 'opacity-[0.06]'}`}
-          style={{ backgroundImage: `linear-gradient(90deg, transparent, ${settings.primaryColor}, transparent, ${settings.primaryColor}, transparent)` }}></div>
-        <div className="absolute inset-y-0 left-0 w-12 z-20 pointer-events-none" style={{ background: `linear-gradient(to right, ${isDark ? '#1E293B' : '#FFFFFF'}, transparent)` }}></div>
-        <div className="absolute inset-y-0 right-0 w-12 z-20 pointer-events-none" style={{ background: `linear-gradient(to left, ${isDark ? '#1E293B' : '#FFFFFF'}, transparent)` }}></div>
         <div className="mask-edges">
           <nav {...navScrollProps} className="overflow-x-auto no-scrollbar py-6 px-8 flex flex-nowrap items-center space-x-5 z-10 touch-pan-x select-none">
             {settings.categories.map(cat => (
@@ -264,7 +257,7 @@ const MenuView: React.FC<{
           {filteredProducts.map(p => (
             <div key={p.id} onClick={() => onSelectProduct(p)} 
               className={`relative rounded-[32px] border-2 transition-all active:scale-[0.98] flex items-stretch p-3 overflow-hidden min-h-[160px] cursor-pointer shadow-sm ${p.isBestseller ? 'border-amber-400 bg-amber-400/5' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
-              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[10px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic shadow-md">Must Try</div>}
+              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[10px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic shadow-md">Best Seller</div>}
               <div className={`w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center rounded-3xl mr-4 shrink-0 self-center overflow-hidden shadow-inner ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50'}`}>
                 <img src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform hover:scale-110" loading="lazy" />
               </div>
@@ -288,7 +281,7 @@ const MenuView: React.FC<{
            <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-sm cursor-pointer overflow-hidden">
             <div className="flex items-center space-x-4">
                <div className="bg-white text-[#86BC25] w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-lg animate-bounce-short flex-shrink-0">{cartCount}</div>
-               <span className="text-lg uppercase tracking-tight whitespace-nowrap">Basket</span>
+               <span className="text-lg uppercase tracking-tight whitespace-nowrap">Review Basket</span>
             </div>
             <span className="text-2xl font-oswald tracking-wide whitespace-nowrap ml-4">{settings.currency} {cartTotal.toFixed(2)}</span>
           </div>
@@ -322,10 +315,6 @@ const ProductDetailView: React.FC<{
       </header>
       
       <div className="flex-1 relative overflow-hidden">
-        {/* Subtle Vertical Ambient Background Animation (fading color effect) */}
-        <div className={`absolute inset-0 bg-animated-vertical pointer-events-none transition-opacity duration-500 ${isDark ? 'opacity-[0.1]' : 'opacity-[0.05]'}`}
-          style={{ backgroundImage: `linear-gradient(180deg, transparent, ${settings.primaryColor}, transparent, ${settings.primaryColor}, transparent)` }}></div>
-        
         <div className="h-full overflow-y-auto p-6 space-y-8 no-scrollbar pb-64 smooth-scroll relative z-10 mask-edges-vertical">
           <div className="flex flex-col items-center">
              <div className={`w-72 h-72 rounded-[3rem] flex items-center justify-center p-6 mb-8 shadow-inner overflow-hidden border-2 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
@@ -392,6 +381,7 @@ const CartView: React.FC<{
   total: number;
 }> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => {
   const isDark = settings.themeMode === 'dark';
+
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
       <header className={`flex-shrink-0 px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] flex items-center justify-between border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
@@ -399,6 +389,14 @@ const CartView: React.FC<{
         <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-white border border-red-500 px-4 py-2.5 rounded-full active:bg-red-50 transition-colors shadow-sm whitespace-nowrap">CLEAR ALL</button>
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64 smooth-scroll">
+        {items.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <span className="text-6xl">🛒</span>
+            <p className={`font-black uppercase tracking-widest text-xs ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Your basket is empty</p>
+            <button onClick={onBack} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest">Go to Menu</button>
+          </div>
+        )}
+
         {items.map((item, idx) => {
           const itemBasePrice = item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0);
           return (
@@ -460,8 +458,6 @@ const TimeSelector: React.FC<{
     closeDate.setHours(closeH, closeM, 0, 0);
 
     let currentSlot = new Date(openDate);
-    
-    // Add buffer: users can only order at least 15 mins in advance from NOW
     const bufferTime = new Date();
     bufferTime.setMinutes(bufferTime.getMinutes() + 15);
 
@@ -480,9 +476,6 @@ const TimeSelector: React.FC<{
         <label className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>
           {mode === 'DELIVERY' ? 'Desired Delivery Time' : 'Arrival Time'}
         </label>
-        {mode === 'DELIVERY' && (
-          <span className="text-[9px] font-black text-amber-500 uppercase tracking-tight animate-pulse">Expect Traffic Issues</span>
-        )}
       </div>
       
       <div className="relative">
@@ -616,7 +609,29 @@ const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; deta
 const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => void; orderNumber: number }> = ({ settings, onRestart, orderNumber }) => {
   const isDark = settings.themeMode === 'dark';
   return (
-    <div className={`h-full flex flex-col items-center justify-center p-12 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))] text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}><div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-lg"><CheckIcon className="w-20 h-20" /></div><div className="space-y-3"><h2 className={`text-4xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Received!</h2><p className={`text-lg font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Your food is being prepared. Enjoy!</p></div><div className={`p-8 rounded-3xl border-2 w-full max-w-xs space-y-1 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}><p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p><p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p></div><button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all whitespace-nowrap">Back to Home</button></div>
+    <div className={`h-full flex flex-col items-center justify-center p-12 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))] text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}>
+      <div className="relative">
+        <div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-2xl animate-bounce">
+          <CheckIcon className="w-20 h-20" />
+        </div>
+        <div className="absolute -top-4 -left-4 w-8 h-8 bg-amber-400 rounded-full animate-ping"></div>
+        <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-blue-500 rounded-full animate-ping [animation-delay:0.5s]"></div>
+      </div>
+      
+      <div className="space-y-3">
+        <h2 className={`text-4xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Confirmed!</h2>
+        <p className={`text-lg font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Pick up your order at the counter when your number is called.</p>
+      </div>
+
+      <div className={`p-10 rounded-[3rem] border-4 w-full max-w-xs space-y-2 shadow-2xl transform rotate-1 ${isDark ? 'bg-[#1E293B] border-white/10' : 'bg-slate-50 border-slate-100'}`} style={{ borderColor: settings.primaryColor }}>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Order Number</p>
+        <p className={`text-7xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p>
+      </div>
+
+      <button onClick={onRestart} className="bg-slate-900 text-white px-12 py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all whitespace-nowrap">
+        New Order
+      </button>
+    </div>
   );
 };
 
@@ -644,15 +659,6 @@ const AdminView: React.FC<{
     const next = [...localSettings.workingHours];
     next[idx] = { ...next[idx], [field]: value };
     setLocalSettings({ ...localSettings, workingHours: next });
-  };
-
-  const addHoliday = (date: string) => {
-    if (!date || localSettings.forceHolidays.includes(date)) return;
-    setLocalSettings({ ...localSettings, forceHolidays: [...localSettings.forceHolidays, date].sort() });
-  };
-
-  const removeHoliday = (date: string) => {
-    setLocalSettings({ ...localSettings, forceHolidays: localSettings.forceHolidays.filter(d => d !== date) });
   };
 
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -692,10 +698,10 @@ const AdminView: React.FC<{
           <button onClick={onBack} className={`p-2 rounded-xl hover:bg-black/5 transition-colors`}>
             <BackIcon />
           </button>
-          <h2 className="font-black text-xl font-oswald uppercase tracking-tight">Admin</h2>
+          <h2 className="font-black text-xl font-oswald uppercase tracking-tight">System Admin</h2>
         </div>
         <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-6 py-2.5 rounded-2xl font-black text-xs shadow-xl active:scale-95 transition-all uppercase tracking-widest">
-          Save Changes
+          Sync Menu
         </button>
       </header>
 
@@ -725,7 +731,7 @@ const AdminView: React.FC<{
             </section>
             
             <section className="space-y-4">
-              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Theme & Presets</h3>
+              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Visual Style</h3>
               <div className={cardStyles}>
                 <div className="flex gap-2">
                   <button onClick={() => setLocalSettings({...localSettings, themeMode: 'light'})} className={`flex-1 py-4 rounded-2xl border-2 font-black flex items-center justify-center gap-3 transition-all ${localSettings.themeMode === 'light' ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-md' : 'border-slate-100 grayscale opacity-40'}`}>
@@ -761,26 +767,6 @@ const AdminView: React.FC<{
                     )}
                   </div>
                 ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-white/20' : 'text-slate-400'}`}>Special Holidays</h3>
-              <div className={cardStyles}>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 px-1">Add Non-Opening Date</label>
-                  <input type="date" className={`${inputStyles} py-3 text-sm`} onChange={(e) => { addHoliday(e.target.value); e.target.value = ''; }} />
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {localSettings.forceHolidays.map(d => (
-                    <span key={d} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black">
-                      {d} <button onClick={() => removeHoliday(d)} className="text-white/50 hover:text-white">✕</button>
-                    </span>
-                  ))}
-                  {localSettings.forceHolidays.length === 0 && (
-                    <p className="text-xs text-slate-400 italic">No special holidays set.</p>
-                  )}
-                </div>
               </div>
             </section>
           </div>
@@ -833,20 +819,13 @@ const AdminView: React.FC<{
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl border border-white/5">
-                      <label className="flex items-center gap-3 cursor-pointer select-none w-full">
-                        <input type="checkbox" className="w-6 h-6 rounded-lg accent-amber-400" checked={!!prod.isBestseller} onChange={e => { const next = [...localSettings.products]; next[globalIdx].isBestseller = e.target.checked; setLocalSettings({...localSettings, products: next}); }} />
-                        <span className="text-xs font-black uppercase tracking-tight text-slate-400">Recommend to Customers</span>
-                      </label>
-                    </div>
-
                     <div className="flex gap-3">
                       <button onClick={() => { setActiveImageProductId(prod.id); fileInputRef.current?.click(); }} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><UploadIcon /> Upload</button>
                       <button onClick={() => { setActiveImageProductId(prod.id); cameraInputRef.current?.click(); }} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest"><CameraIcon /> Camera</button>
                     </div>
 
                     <button onClick={() => toggleOptionsEdit(prod.id)} className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2 transition-all ${editingOptionsId === prod.id ? 'bg-slate-900 border-slate-900 text-white shadow-lg' : 'border-slate-100 text-slate-400'}`}>
-                      {editingOptionsId === prod.id ? 'HIDE EDITOR' : 'EDIT SIZES & ADDONS'}
+                      {editingOptionsId === prod.id ? 'Hide Editor' : 'Edit Sizes & Addons'}
                     </button>
 
                     {editingOptionsId === prod.id && (
@@ -877,7 +856,7 @@ const AdminView: React.FC<{
                         </div>
                       </div>
                     )}
-                    <button onClick={() => { if(confirm("Permanently delete?")) setLocalSettings({...localSettings, products: localSettings.products.filter(p => p.id !== prod.id)}); }} className="w-full text-red-500 text-[10px] font-black uppercase pt-2 opacity-50 hover:opacity-100 transition-opacity">Remove Product From System</button>
+                    <button onClick={() => { if(confirm("Permanently delete?")) setLocalSettings({...localSettings, products: localSettings.products.filter(p => p.id !== prod.id)}); }} className="w-full text-red-500 text-[10px] font-black uppercase pt-2 opacity-50 hover:opacity-100 transition-opacity">Remove Item</button>
                   </div>
                 );
               })}
@@ -905,8 +884,6 @@ export default function App() {
   
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
 
-  // --- Supabase Integration ---
-
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
@@ -919,7 +896,6 @@ export default function App() {
       if (data?.config) {
         setSettings(data.config);
       } else if (!data) {
-        // First run: Initialize table if empty
         await supabase.from('kiosk_settings').insert([{ id: 1, config: DEFAULT_SETTINGS }]);
       }
     } catch (err) {
@@ -937,10 +913,10 @@ export default function App() {
       
       if (error) throw error;
       setSettings(newSettings);
-      showToast("Sync Successful: Menu updated");
+      showToast("Menu Synced Successfully");
     } catch (err) {
       console.error("Supabase Save Error", err);
-      showToast("Error: Could not sync menu");
+      showToast("Cloud sync failed");
     }
   };
 
@@ -962,11 +938,8 @@ export default function App() {
       
       setLastOrderNumber(orderNumber);
       setView(AppView.ORDER_CONFIRMED);
-      showToast(`Order confirmed for ${userDetails.name}!`);
     } catch (err) {
       console.error("Order save fail", err);
-      // Even if database fails, we show the order number to user so they have a reference
-      // This ensures UI doesn't "hang" or change to a different number on retry
       setLastOrderNumber(orderNumber);
       setView(AppView.ORDER_CONFIRMED);
     } finally {
@@ -992,7 +965,7 @@ export default function App() {
       } 
       return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }]; 
     }); 
-    showToast(`${quantity}x ${product.name} added`); 
+    showToast(`Added ${product.name} to basket`); 
     setView(AppView.MENU); 
   }, [showToast]);
   
@@ -1015,7 +988,7 @@ export default function App() {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center bg-white space-y-6">
         <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">Loading LittleIndia Catalog...</p>
+        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">Loading Kiosk...</p>
       </div>
     );
   }
@@ -1059,7 +1032,7 @@ export default function App() {
       )}
       
       {view === AppView.ADMIN && (
-        <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { saveToSupabase(s); setView(AppView.MENU); }} onReset={() => { setSettings(DEFAULT_SETTINGS); saveToSupabase(DEFAULT_SETTINGS); showToast("System Reset to Default"); setView(AppView.LANDING); }} />
+        <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { saveToSupabase(s); setView(AppView.MENU); }} onReset={() => { setSettings(DEFAULT_SETTINGS); saveToSupabase(DEFAULT_SETTINGS); showToast("Factory Reset Applied"); setView(AppView.LANDING); }} />
       )}
     </div>
   );
