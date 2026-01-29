@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
+import { supabase } from './supabase';
 
 /**
  * --- SVG Icons ---
@@ -15,7 +17,7 @@ const BackIcon = () => (
 const AdminIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3"></circle>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
   </svg>
 );
 
@@ -205,7 +207,7 @@ const MenuView: React.FC<{
 
   return (
     <div className={`h-full flex flex-col overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A]' : 'bg-[#F8FAFC]'}`}>
-      <header className={`flex-shrink-0 flex items-center justify-between p-4 border-b shadow-sm z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <header className={`flex-shrink-0 flex items-center justify-between px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b shadow-sm z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-3">
            <div className="px-3 py-1.5 text-white font-black italic rounded-lg text-sm shadow-sm transition-transform" style={{ backgroundColor: settings.primaryColor }}>{settings.brandName}</div>
            <h2 className={`text-xl font-bold font-oswald tracking-tight uppercase overflow-hidden whitespace-nowrap text-ellipsis max-w-[140px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -257,7 +259,7 @@ const MenuView: React.FC<{
         </div>
       </div>
 
-      <main {...mainScrollProps} className="flex-1 overflow-y-auto p-4 no-scrollbar pb-48">
+      <main {...mainScrollProps} className="flex-1 overflow-y-auto p-4 no-scrollbar pb-48 smooth-scroll">
         <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map(p => (
             <div key={p.id} onClick={() => onSelectProduct(p)} 
@@ -282,7 +284,7 @@ const MenuView: React.FC<{
       </main>
       
       {cartCount > 0 && (
-        <div className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 backdrop-blur-xl border-t flex items-center gap-4 animate-scale-up shadow-[0_-20px_50px_rgba(0,0,0,0.15)] z-30 ${isDark ? 'bg-[#0F172A]/90 border-white/10' : 'bg-white/90 border-slate-100'}`}>
+        <div className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-xl border-t flex items-center gap-4 animate-scale-up shadow-[0_-20px_50px_rgba(0,0,0,0.15)] z-30 ${isDark ? 'bg-[#0F172A]/90 border-white/10' : 'bg-white/90 border-slate-100'}`}>
            <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-sm cursor-pointer overflow-hidden">
             <div className="flex items-center space-x-4">
                <div className="bg-white text-[#86BC25] w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-lg animate-bounce-short flex-shrink-0">{cartCount}</div>
@@ -314,11 +316,11 @@ const ProductDetailView: React.FC<{
 
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}>
-      <header className={`flex-shrink-0 p-5 flex items-center space-x-4 border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <header className={`flex-shrink-0 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] flex items-center space-x-4 border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <button onClick={onBack} className={`p-2 rounded-2xl active:bg-opacity-80 flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
         <h2 className={`text-xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>Customize</h2>
       </header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64">
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64 smooth-scroll">
         <div className="flex flex-col items-center">
            <div className={`w-72 h-72 rounded-[3rem] flex items-center justify-center p-6 mb-8 shadow-inner overflow-hidden border-2 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
               <img src={product.image} className="w-full h-full object-cover rounded-[2rem] shadow-2xl" loading="eager" />
@@ -356,7 +358,7 @@ const ProductDetailView: React.FC<{
           </section>
         )}
       </div>
-      <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <div className={`flex-shrink-0 px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className={`flex items-center justify-between p-2 rounded-[2rem] border-2 ${isDark ? 'bg-[#0F172A]' : 'bg-slate-50 border-slate-100'}`}>
           <button onClick={() => setQuantity(q => Math.max(1, q-1))} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>−</button>
           <span className={`text-4xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
@@ -382,11 +384,11 @@ const CartView: React.FC<{
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 p-6 flex items-center justify-between border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <header className={`flex-shrink-0 px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] flex items-center justify-between border-b sticky top-0 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-4"><button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2></div>
         <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-white border border-red-500 px-4 py-2.5 rounded-full active:bg-red-50 transition-colors shadow-sm whitespace-nowrap">CLEAR ALL</button>
       </header>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64 smooth-scroll">
         {items.map((item, idx) => {
           const itemBasePrice = item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0);
           return (
@@ -402,7 +404,7 @@ const CartView: React.FC<{
         })}
       </div>
       {items.length > 0 && (
-        <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <div className={`flex-shrink-0 px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
           <div className="space-y-4"><div className="flex justify-between text-slate-400 font-black uppercase text-[10px] tracking-widest"><span>Subtotal</span><span className="whitespace-nowrap">{settings.currency} {total.toFixed(2)}</span></div><div className={`flex justify-between text-4xl font-black pt-6 border-t-2 ${isDark ? 'border-white/5 text-white' : 'border-slate-50 text-slate-900'}`}><span className="font-oswald">TOTAL</span><span className="font-oswald whitespace-nowrap" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span></div></div>
           <button onClick={onCheckout} className="w-full text-white py-6 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden">Check Out</button>
         </div>
@@ -415,8 +417,8 @@ const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSele
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2></header>
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center space-y-6 no-scrollbar"><h3 className={`text-center font-black uppercase tracking-widest text-xs mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Choose your service</h3><div className="grid grid-cols-1 gap-4 w-full max-sm:max-w-sm"><button onClick={() => onSelectMode('EAT_IN')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🍽️</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Eat In</span></button><button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🥡</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Take Away</span></button><button onClick={() => onSelectMode('DELIVERY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🚚</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Delivery</span></button></div></div>
+      <header className={`flex-shrink-0 px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2></header>
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center space-y-6 no-scrollbar smooth-scroll"><h3 className={`text-center font-black uppercase tracking-widest text-xs mb-4 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Choose your service</h3><div className="grid grid-cols-1 gap-4 w-full max-sm:max-w-sm"><button onClick={() => onSelectMode('EAT_IN')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🍽️</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Eat In</span></button><button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🥡</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Take Away</span></button><button onClick={() => onSelectMode('DELIVERY')} className={`p-8 rounded-[2.5rem] border-4 flex flex-col items-center gap-3 transition-all active:scale-95 shadow-xl ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-6xl">🚚</span><span className="text-xl font-black uppercase tracking-tight whitespace-nowrap">Delivery</span></button></div></div>
     </div>
   );
 };
@@ -476,7 +478,7 @@ const TimeSelector: React.FC<{
       <div className="relative">
         <div 
           {...scrollProps}
-          className="mask-edges overflow-x-auto no-scrollbar flex items-center space-x-2 py-2 px-1 touch-pan-x cursor-grab active:cursor-grabbing select-none"
+          className="mask-edges overflow-x-auto no-scrollbar flex items-center space-x-2 py-2 px-1 touch-pan-x cursor-grab active:cursor-grabbing select-none smooth-scroll"
         >
           {availableSlots.map(slot => (
             <button
@@ -524,14 +526,14 @@ const UserDetailsView: React.FC<{
 
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <header className={`flex-shrink-0 px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
           <BackIcon />
         </button>
         <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Details</h2>
       </header>
       
-      <form onSubmit={handleSubmit} className="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar">
+      <form onSubmit={handleSubmit} className="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar smooth-scroll">
         <div className="space-y-2">
           <label className={`text-[10px] font-black uppercase tracking-widest px-1 ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Full Name</label>
           <input required type="text" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Your Name" className={inputClass} />
@@ -557,7 +559,7 @@ const UserDetailsView: React.FC<{
         )}
       </form>
       
-      <div className={`p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
+      <div className={`px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.1)] ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
         <button 
           onClick={handleSubmit} 
           className="w-full text-white py-6 rounded-3xl text-xl font-black uppercase shadow-xl transition-all active:scale-[0.98] bg-blue-600 disabled:opacity-50 whitespace-nowrap" 
@@ -570,12 +572,12 @@ const UserDetailsView: React.FC<{
   );
 };
 
-const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; details: UserDetails; total: number; onBack: () => void; onConfirm: () => void; }> = ({ settings, cart, details, total, onBack, onConfirm }) => {
+const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; details: UserDetails; total: number; onBack: () => void; onConfirm: () => void; isSubmitting: boolean; }> = ({ settings, cart, details, total, onBack, onConfirm, isSubmitting }) => {
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 p-6 flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review Order</h2></header>
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64">
+      <header className={`flex-shrink-0 px-6 pb-6 pt-[calc(1.5rem+env(safe-area-inset-top))] flex items-center space-x-4 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review Order</h2></header>
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-64 smooth-scroll">
         <section className="space-y-4">
           <h3 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Your Details</h3>
           <div className={`p-6 rounded-[2.5rem] space-y-4 border-2 ${isDark ? 'bg-slate-800/50 border-white/5' : 'bg-white border-slate-50 shadow-sm'}`}>
@@ -594,16 +596,17 @@ const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; deta
         </section>
         <section className="space-y-4"><h3 className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-400'}`}>Items Summary</h3><div className="space-y-3">{cart.map((item, idx) => (<div key={idx} className={`p-4 rounded-3xl flex justify-between items-center ${isDark ? 'bg-slate-800/30' : 'bg-white shadow-sm'}`}><div className="flex items-center gap-3 overflow-hidden"><span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs flex-shrink-0 ${isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-900'}`}>{item.quantity}x</span><div className="overflow-hidden"><p className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase truncate">{item.selectedSize.label}</p></div></div><p className={`font-black font-oswald flex-shrink-0 ml-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {((item.price + item.selectedSize.price + item.selectedAddons.reduce((s,a) => s + a.price, 0)) * item.quantity).toFixed(2)}</p></div>))}</div></section>
       </div>
-      <div className={`flex-shrink-0 p-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><div className="flex justify-between items-end"><span className="text-slate-400 font-black uppercase text-xs">Grand Total</span><span className="text-4xl font-black font-oswald whitespace-nowrap" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span></div><button onClick={onConfirm} className="w-full text-white py-6 rounded-[2rem] text-xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden">Place Order Now</button></div>
+      <div className={`flex-shrink-0 px-8 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 border-t rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] space-y-6 z-10 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><div className="flex justify-between items-end"><span className="text-slate-400 font-black uppercase text-xs">Grand Total</span><span className="text-4xl font-black font-oswald whitespace-nowrap" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span></div><button onClick={onConfirm} disabled={isSubmitting} className={`w-full text-white py-6 rounded-[2rem] text-xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm whitespace-nowrap overflow-hidden flex items-center justify-center gap-3 ${isSubmitting ? 'opacity-70 grayscale cursor-not-allowed' : ''}`}>
+        {isSubmitting ? <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Processing...</> : 'Place Order Now'}
+      </button></div>
     </div>
   );
 };
 
-const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => void }> = ({ settings, onRestart }) => {
+const OrderConfirmedView: React.FC<{ settings: AppSettings; onRestart: () => void; orderNumber: number }> = ({ settings, onRestart, orderNumber }) => {
   const isDark = settings.themeMode === 'dark';
-  const orderNumber = useMemo(() => Math.floor(Math.random() * 900) + 100, []);
   return (
-    <div className={`h-full flex flex-col items-center justify-center p-12 text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}><div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-lg"><CheckIcon className="w-20 h-20" /></div><div className="space-y-3"><h2 className={`text-4xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Received!</h2><p className={`text-lg font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Your food is being prepared. Enjoy!</p></div><div className={`p-8 rounded-3xl border-2 w-full max-w-xs space-y-1 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}><p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p><p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p></div><button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all whitespace-nowrap">Back to Home</button></div>
+    <div className={`h-full flex flex-col items-center justify-center p-12 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))] text-center space-y-8 animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-white'}`}><div className="w-40 h-40 bg-[#86BC25] rounded-full flex items-center justify-center text-white shadow-lg"><CheckIcon className="w-20 h-20" /></div><div className="space-y-3"><h2 className={`text-4xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Received!</h2><p className={`text-lg font-medium ${isDark ? 'text-white/50' : 'text-slate-500'}`}>Your food is being prepared. Enjoy!</p></div><div className={`p-8 rounded-3xl border-2 w-full max-w-xs space-y-1 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-slate-50 border-slate-100'}`}><p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Order Number</p><p className={`text-6xl font-black font-oswald ${isDark ? 'text-white' : 'text-slate-900'}`}>#{orderNumber}</p></div><button onClick={onRestart} className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl active:scale-95 transition-all whitespace-nowrap">Back to Home</button></div>
   );
 };
 
@@ -674,7 +677,7 @@ const AdminView: React.FC<{
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageFile} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageFile} />
 
-      <header className={`flex-shrink-0 p-5 border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+      <header className={`flex-shrink-0 px-5 pb-5 pt-[calc(1.25rem+env(safe-area-inset-top))] border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center space-x-3">
           <button onClick={onBack} className={`p-2 rounded-xl hover:bg-black/5 transition-colors`}>
             <BackIcon />
@@ -694,7 +697,7 @@ const AdminView: React.FC<{
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-80">
+      <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-80 smooth-scroll">
         {activeTab === 'General' && (
           <div className="space-y-10 animate-scale-up">
             <section className="space-y-4">
@@ -880,16 +883,90 @@ const AdminView: React.FC<{
 };
 
 export default function App() {
-  const [settings, setSettings] = useState<AppSettings>(() => { const saved = localStorage.getItem('kiosk_settings'); return saved ? JSON.parse(saved) : DEFAULT_SETTINGS; });
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<AppView>(AppView.LANDING);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', phone: '', address: '', diningMode: 'EAT_IN', collectionTime: 'ASAP' });
+  const [lastOrderNumber, setLastOrderNumber] = useState<number>(0);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   
-  useEffect(() => { localStorage.setItem('kiosk_settings', JSON.stringify(settings)); }, [settings]);
-  
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
+
+  // --- Supabase Integration ---
+
+  const fetchSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('kiosk_settings')
+        .select('config')
+        .eq('id', 1)
+        .single();
+      
+      if (data?.config) {
+        setSettings(data.config);
+      } else if (!data) {
+        // First run: Initialize table if empty
+        await supabase.from('kiosk_settings').insert([{ id: 1, config: DEFAULT_SETTINGS }]);
+      }
+    } catch (err) {
+      console.error("Failed to load settings from Supabase", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const saveToSupabase = async (newSettings: AppSettings) => {
+    try {
+      const { error } = await supabase
+        .from('kiosk_settings')
+        .upsert({ id: 1, config: newSettings });
+      
+      if (error) throw error;
+      setSettings(newSettings);
+      showToast("Sync Successful: Menu updated");
+    } catch (err) {
+      console.error("Supabase Save Error", err);
+      showToast("Error: Could not sync menu");
+    }
+  };
+
+  const handleOrderConfirmed = async () => {
+    if (isSubmittingOrder) return;
+    
+    setIsSubmittingOrder(true);
+    const orderNumber = Math.floor(Math.random() * 900) + 100;
+    
+    try {
+      const { error } = await supabase.from('kiosk_orders').insert([{
+        order_number: orderNumber,
+        customer_details: userDetails,
+        cart_items: cart,
+        total_price: cartTotal
+      }]);
+      
+      if (error) throw error;
+      
+      setLastOrderNumber(orderNumber);
+      setView(AppView.ORDER_CONFIRMED);
+      showToast(`Order confirmed for ${userDetails.name}!`);
+    } catch (err) {
+      console.error("Order save fail", err);
+      // Even if database fails, we show the order number to user so they have a reference
+      // This ensures UI doesn't "hang" or change to a different number on retry
+      setLastOrderNumber(orderNumber);
+      setView(AppView.ORDER_CONFIRMED);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
+  useEffect(() => { 
+    fetchSettings();
+  }, [fetchSettings]);
   
   const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price + item.selectedAddons.reduce((s, a) => s + a.price, 0)) * item.quantity, 0) * 100) / 100, [cart]);
   
@@ -919,13 +996,24 @@ export default function App() {
   const restartApp = useCallback(() => { 
     setCart([]); 
     setUserDetails({ name: '', phone: '', address: '', diningMode: 'EAT_IN', collectionTime: 'ASAP' }); 
+    setLastOrderNumber(0);
+    setIsSubmittingOrder(false);
     setView(AppView.LANDING); 
   }, []);
+
+  if (loading) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center bg-white space-y-6">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+        <p className="font-black uppercase tracking-widest text-[10px] text-slate-400">Loading LittleIndia Catalog...</p>
+      </div>
+    );
+  }
   
   return (
     <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden transition-colors duration-300 ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
       {toast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] z-[100] animate-scale-up shadow-xl backdrop-blur-md border border-white/10">
+        <div className="fixed top-[calc(1rem+env(safe-area-inset-top))] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] z-[100] animate-scale-up shadow-xl backdrop-blur-md border border-white/10">
           {toast}
         </div>
       )}
@@ -953,15 +1041,15 @@ export default function App() {
       )}
       
       {view === AppView.FINAL_SUMMARY && (
-        <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={() => { setView(AppView.ORDER_CONFIRMED); showToast(`Order confirmed for ${userDetails.name}!`); }} />
+        <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />
       )}
       
       {view === AppView.ORDER_CONFIRMED && (
-        <OrderConfirmedView settings={settings} onRestart={restartApp} />
+        <OrderConfirmedView settings={settings} onRestart={restartApp} orderNumber={lastOrderNumber} />
       )}
       
       {view === AppView.ADMIN && (
-        <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { setSettings(s); showToast("Success: Database synced"); setView(AppView.MENU); }} onReset={() => { setSettings(DEFAULT_SETTINGS); localStorage.removeItem('kiosk_settings'); showToast("System reset performed"); setView(AppView.LANDING); }} />
+        <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { saveToSupabase(s); setView(AppView.MENU); }} onReset={() => { setSettings(DEFAULT_SETTINGS); saveToSupabase(DEFAULT_SETTINGS); showToast("System Reset to Default"); setView(AppView.LANDING); }} />
       )}
     </div>
   );

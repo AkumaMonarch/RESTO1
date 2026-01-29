@@ -12,6 +12,8 @@
     <style>
         :root {
             --app-height: 100%;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
         }
         html, body {
             height: 100%;
@@ -20,6 +22,8 @@
             padding: 0;
             overflow: hidden;
             background-color: #f3f4f6;
+            /* Prevents pull-to-refresh on mobile */
+            overscroll-behavior-y: none;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -82,6 +86,10 @@
         .mask-edges {
             -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
             mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        }
+        /* Mobile Smooth Scroll */
+        .smooth-scroll {
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 <script type="importmap">
