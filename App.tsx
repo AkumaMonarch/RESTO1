@@ -283,7 +283,7 @@ const MenuView: React.FC<{
       
       {cartCount > 0 && (
         <div className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 backdrop-blur-xl border-t flex items-center gap-4 animate-scale-up shadow-[0_-20px_50px_rgba(0,0,0,0.15)] z-30 ${isDark ? 'bg-[#0F172A]/90 border-white/10' : 'bg-white/90 border-slate-100'}`}>
-           <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-[0_10px_30px_-5px_rgba(134,188,37,0.5)] cursor-pointer">
+           <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] hover:bg-[#76a520] active:scale-95 transition-all text-white p-5 rounded-[2.5rem] flex items-center justify-between font-black shadow-sm cursor-pointer">
             <div className="flex items-center space-x-4">
                <div className="bg-white text-[#86BC25] w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-lg animate-bounce-short">{cartCount}</div>
                <span className="text-lg uppercase tracking-tight">Basket</span>
@@ -373,7 +373,7 @@ const ProductDetailView: React.FC<{
           <span className={`text-4xl font-black tabular-nums ${isDark ? 'text-white' : 'text-slate-900'}`}>{quantity}</span>
           <button onClick={() => setQuantity(q => q+1)} className={`w-16 h-16 border-2 rounded-2xl text-4xl font-black flex items-center justify-center active:scale-95 transition-all shadow-md ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>+</button>
         </div>
-        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase tracking-tight shadow-2xl active:scale-[0.98] transition-all flex items-center justify-between px-10 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)]" style={{ backgroundColor: settings.primaryColor }}>
+        <button onClick={() => onAddToCart(product, quantity, selectedSize, selectedAddons)} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase tracking-tight shadow-2xl active:scale-[0.98] transition-all flex items-center justify-between px-10 shadow-sm" style={{ backgroundColor: settings.primaryColor }}>
           <span>Add To Basket</span><span className="font-oswald text-3xl">{settings.currency} {totalPrice.toFixed(2)}</span>
         </button>
       </div>
@@ -397,7 +397,7 @@ const CartView: React.FC<{
            <button onClick={onBack} className={`p-2 rounded-2xl flex items-center justify-center w-12 h-12 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button>
            <h2 className={`text-3xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2>
         </div>
-        <button onClick={() => { if(confirm("Clear your basket?")) onUpdateQuantity('ALL', -9999); }} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-red-50 px-4 py-2 rounded-xl active:bg-red-100 transition-colors">Clear All</button>
+        <button onClick={() => onUpdateQuantity('ALL', -9999)} className="font-black uppercase text-[10px] tracking-widest text-red-500 bg-white border border-red-500 px-4 py-2.5 rounded-full active:bg-red-50 transition-colors shadow-sm">CLEAR ALL</button>
       </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar pb-64">
         {items.map((item, idx) => {
@@ -448,7 +448,7 @@ const CartView: React.FC<{
                <span className="font-oswald">TOTAL</span><span className="font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
             </div>
           </div>
-          <button onClick={onCheckout} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-[0_15px_40px_-10px_rgba(134,188,37,0.4)]">Check Out</button>
+          <button onClick={onCheckout} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm">Check Out</button>
         </div>
       )}
     </div>
@@ -584,7 +584,7 @@ const FinalSummaryView: React.FC<{
           <span className="text-slate-400 font-black uppercase text-xs">Grand Total</span>
           <span className="text-4xl font-black font-oswald" style={{ color: settings.primaryColor }}>{settings.currency} {total.toFixed(2)}</span>
         </div>
-        <button onClick={onConfirm} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-[0_15px_40px_-10px_rgba(134,188,37,0.4)]">Place Order Now</button>
+        <button onClick={onConfirm} className="w-full text-white py-7 rounded-[2rem] text-2xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-[#86BC25] shadow-sm">Place Order Now</button>
       </div>
     </div>
   );
