@@ -1,0 +1,11 @@
+[build]
+  # This tells Netlify to run the Vite build command
+  command = "npm run build"
+  # This tells Netlify that the final website files will be in the 'dist' folder
+  publish = "dist"
+
+[[redirects]]
+  # This ensures that all URL paths are handled by the React app (prevents 404s on refresh)
+  from = "/*"
+  to = "/index.html"
+  status = 200
