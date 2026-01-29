@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { AppView, CartItem, CategoryType, Product, UserDetails, AppSettings, Category, SizeOption, AddonOption, WorkingDay, DiningMode } from './types';
 import { DEFAULT_SETTINGS, THEME_PRESETS } from './constants';
@@ -63,6 +62,12 @@ const UploadIcon = () => (
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
     <polyline points="17 8 12 3 7 8"></polyline>
     <line x1="12" y1="3" x2="12" y2="15"></line>
+  </svg>
+);
+
+const ChevronDownIcon = ({ className }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="6 9 12 15 18 9"></polyline>
   </svg>
 );
 
@@ -404,6 +409,8 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
   const camInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentEditingProdId, setCurrentEditingProdId] = useState<string | null>(null);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [expandedAddOns, setExpandedAddOns] = useState<Record<string, boolean>>({});
   
   const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/5 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-slate-300'}`;
   const cardStyles = `p-4 rounded-2xl border transition-all shadow-sm ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`;
@@ -477,6 +484,10 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
     }
   };
 
+  const toggleAddOnsExpansion = (id: string) => {
+    setExpandedAddOns(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
       {/* Hidden Inputs for Media Capture */}
@@ -488,7 +499,7 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
           <button onClick={onBack} className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}><BackIcon /></button>
           <h2 className="font-black text-lg font-oswald uppercase tracking-tight">Admin Panel</h2>
         </div>
-        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Sync Changes</button>
+        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Save</button>
       </header>
 
       <div className={`flex-shrink-0 flex border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
@@ -589,12 +600,27 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
 
         {activeTab === 'Products' && (
           <div className="space-y-6 animate-scale-up">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
-              <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
+            <div className="flex flex-col gap-4 px-1">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
+                <button onClick={addProduct} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Add New</button>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30 pointer-events-none">
+                  <SearchIcon />
+                </div>
+                <input 
+                  className={`${inputStyles} pl-10 py-2.5`} 
+                  placeholder="Quick search products..." 
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
             <div className="space-y-5">
-              {localSettings.products.map(prod => (
+              {localSettings.products
+                .filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+                .map(prod => (
                 <div key={prod.id} className={cardStyles}>
                   <div className="flex gap-4 mb-5">
                     <div className={`w-16 h-16 rounded-2xl overflow-hidden shrink-0 border-2 ${isDark ? 'border-white/5 bg-slate-900' : 'border-slate-100 bg-slate-100'}`}>
@@ -626,6 +652,83 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
                       </div>
                     </div>
                     <div><label className={labelStyles}>Short Description</label><textarea rows={2} className={`${inputStyles} resize-none leading-relaxed`} value={prod.description} onChange={e => updateProduct(prod.id, 'description', e.target.value)} /></div>
+                    
+                    {/* Expandable Add Ons Section */}
+                    <div className="pt-2">
+                      <button 
+                        onClick={() => toggleAddOnsExpansion(prod.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.99] ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Add Ons</span>
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                            {prod.sizes.length + prod.addons.length}
+                          </span>
+                        </div>
+                        <ChevronDownIcon className={`transition-transform duration-300 ${expandedAddOns[prod.id] ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {expandedAddOns[prod.id] && (
+                        <div className="mt-4 space-y-4 animate-scale-up">
+                          {/* Size Options Management */}
+                          <div className="space-y-2 border-t border-white/5 pt-3">
+                            <div className="flex justify-between items-center">
+                              <label className={labelStyles}>Select Size Options</label>
+                              <button onClick={() => updateProduct(prod.id, 'sizes', [...prod.sizes, { label: 'New Size', price: 0 }])} className="text-[8px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Size</button>
+                            </div>
+                            <div className="space-y-2">
+                              {prod.sizes.map((size, sIdx) => (
+                                <div key={sIdx} className="flex gap-2">
+                                  <input className={`${inputStyles} py-2 text-xs`} value={size.label} onChange={e => {
+                                    const newSizes = [...prod.sizes];
+                                    newSizes[sIdx].label = e.target.value;
+                                    updateProduct(prod.id, 'sizes', newSizes);
+                                  }} placeholder="Size Label" />
+                                  <input className={`${inputStyles} py-2 text-xs w-24`} type="number" value={size.price} onChange={e => {
+                                    const newSizes = [...prod.sizes];
+                                    newSizes[sIdx].price = parseFloat(e.target.value) || 0;
+                                    updateProduct(prod.id, 'sizes', newSizes);
+                                  }} placeholder="Price" />
+                                  <button onClick={() => {
+                                    const newSizes = prod.sizes.filter((_, i) => i !== sIdx);
+                                    updateProduct(prod.id, 'sizes', newSizes);
+                                  }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Addon Options Management */}
+                          <div className="space-y-2 border-t border-white/5 pt-3">
+                            <div className="flex justify-between items-center">
+                              <label className={labelStyles}>Add Extras Options</label>
+                              <button onClick={() => updateProduct(prod.id, 'addons', [...prod.addons, { label: 'New Extra', price: 0 }])} className="text-[8px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Extra</button>
+                            </div>
+                            <div className="space-y-2">
+                              {prod.addons.map((addon, aIdx) => (
+                                <div key={aIdx} className="flex gap-2">
+                                  <input className={`${inputStyles} py-2 text-xs`} value={addon.label} onChange={e => {
+                                    const newAddons = [...prod.addons];
+                                    newAddons[aIdx].label = e.target.value;
+                                    updateProduct(prod.id, 'addons', newAddons);
+                                  }} placeholder="Extra Label" />
+                                  <input className={`${inputStyles} py-2 text-xs w-24`} type="number" value={addon.price} onChange={e => {
+                                    const newAddons = [...prod.addons];
+                                    newAddons[aIdx].price = parseFloat(e.target.value) || 0;
+                                    updateProduct(prod.id, 'addons', newAddons);
+                                  }} placeholder="Price" />
+                                  <button onClick={() => {
+                                    const newAddons = prod.addons.filter((_, i) => i !== aIdx);
+                                    updateProduct(prod.id, 'addons', newAddons);
+                                  }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex justify-between items-center pt-3 mt-1 border-t border-white/5">
                       <label className="flex items-center gap-3 text-[10px] font-black uppercase cursor-pointer opacity-70 group">
                         <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${prod.isBestseller ? 'bg-blue-600 border-blue-600 text-white' : isDark ? 'border-white/20' : 'border-slate-300'}`}>
@@ -641,6 +744,9 @@ const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => v
                   </div>
                 </div>
               ))}
+              {localSettings.products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 && (
+                <div className="text-center py-10 opacity-30 font-bold text-xs uppercase">No products found for "{productSearchQuery}"</div>
+              )}
             </div>
           </div>
         )}
@@ -796,8 +902,29 @@ const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSele
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2></header>
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center space-y-4 no-scrollbar smooth-scroll"><h3 className={`text-center font-black uppercase tracking-widest text-[10px] mb-2 opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Choose your service</h3><div className="grid grid-cols-1 gap-3 w-full max-w-[280px]"><button onClick={() => onSelectMode('EAT_IN')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-4xl">🍽️</span><span className="text-base font-black uppercase tracking-tight">Eat In</span></button><button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-4xl">🥡</span><span className="text-base font-black uppercase tracking-tight">Take Away</span></button><button onClick={() => onSelectMode('DELIVERY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}><span className="text-4xl">🚚</span><span className="text-base font-black uppercase tracking-tight">Delivery</span></button></div></div>
+      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
+          <BackIcon />
+        </button>
+        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2>
+      </header>
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center space-y-4 no-scrollbar smooth-scroll">
+        <h3 className={`text-center font-black uppercase tracking-widest text-[10px] mb-2 opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Choose your service</h3>
+        <div className="grid grid-cols-1 gap-3 w-full max-w-[280px]">
+          <button onClick={() => onSelectMode('EAT_IN')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+            <span className="text-4xl">🍽️</span>
+            <span className="text-base font-black uppercase tracking-tight">Eat In</span>
+          </button>
+          <button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+            <span className="text-4xl">🥡</span>
+            <span className="text-base font-black uppercase tracking-tight">Take Away</span>
+          </button>
+          <button onClick={() => onSelectMode('DELIVERY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
+            <span className="text-4xl">🚚</span>
+            <span className="text-base font-black uppercase tracking-tight">Delivery</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -810,9 +937,33 @@ const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode; onBac
 
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Details</h2></header>
-      <form className="flex-1 p-4 space-y-5 overflow-y-auto no-scrollbar"><div className="space-y-1.5"><label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Full Name</label><input required type="text" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Your Name" className={inputClass} /></div><div className="space-y-1.5"><label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Mobile Number</label><input required type="tel" value={details.phone} onChange={e => setDetails({...details, phone: e.target.value})} placeholder="+00 000 000 000" className={inputClass} /></div>{mode === 'DELIVERY' && <div className="space-y-1.5"><label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Delivery Address</label><textarea required rows={3} value={details.address} onChange={e => setDetails({...details, address: e.target.value})} placeholder="House, Street, Area..." className={`${inputClass} resize-none`} /></div>}</form>
-      <div className="px-6 pb-8 pt-4 border-t"><button onClick={() => onNext(details)} className="w-full text-white py-5 rounded-2xl text-lg font-black uppercase shadow-lg active:scale-[0.98] transition-all bg-blue-600 disabled:opacity-50" disabled={!isValid}>Continue</button></div>
+      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
+          <BackIcon />
+        </button>
+        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Details</h2>
+      </header>
+      <form className="flex-1 p-4 space-y-5 overflow-y-auto no-scrollbar" onSubmit={(e) => e.preventDefault()}>
+        <div className="space-y-1.5">
+          <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Full Name</label>
+          <input required type="text" value={details.name} onChange={e => setDetails({...details, name: e.target.value})} placeholder="Your Name" className={inputClass} />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Mobile Number</label>
+          <input required type="tel" value={details.phone} onChange={e => setDetails({...details, phone: e.target.value})} placeholder="+00 000 000 000" className={inputClass} />
+        </div>
+        {mode === 'DELIVERY' && (
+          <div className="space-y-1.5">
+            <label className="text-[8px] font-black uppercase tracking-widest px-1 opacity-50">Delivery Address</label>
+            <textarea required rows={3} value={details.address} onChange={e => setDetails({...details, address: e.target.value})} placeholder="House, Street, Area..." className={`${inputClass} resize-none`} />
+          </div>
+        )}
+      </form>
+      <div className="px-6 pb-8 pt-4 border-t">
+        <button onClick={() => onNext(details)} className="w-full text-white py-5 rounded-2xl text-lg font-black uppercase shadow-lg active:scale-[0.98] transition-all bg-blue-600 disabled:opacity-50" disabled={!isValid}>
+          Continue
+        </button>
+      </div>
     </div>
   );
 };
@@ -821,12 +972,59 @@ const FinalSummaryView: React.FC<{ settings: AppSettings; cart: CartItem[]; deta
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
-      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}><button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}><BackIcon /></button><h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review</h2></header>
+      <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center space-x-3 border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
+        <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
+          <BackIcon />
+        </button>
+        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Review</h2>
+      </header>
       <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-64">
-        <section className="space-y-3"><h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Your Details</h3><div className={`p-5 rounded-3xl border-2 space-y-3 ${isDark ? 'bg-slate-800/50 border-white/5 text-white' : 'bg-white border-slate-50 text-slate-900'}`}><div className="flex items-center gap-3"><span className="text-2xl">👤</span><div className="overflow-hidden"><p className="font-black text-sm truncate">{details.name}</p><p className="text-[10px] opacity-50 truncate">{details.phone}</p></div></div><div className="flex items-center gap-3 border-t pt-3 border-slate-100/10"><span className="text-2xl">{details.diningMode === 'DELIVERY' ? '🚚' : '🥡'}</span><p className="font-black uppercase text-[10px]">{details.diningMode.replace('_', ' ')}</p></div></div></section>
-        <section className="space-y-3"><h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Items</h3><div className="space-y-2">{cart.map((item, idx) => (<div key={idx} className={`p-3 rounded-2xl flex justify-between items-center ${isDark ? 'bg-slate-800/30 text-white' : 'bg-white shadow-sm text-slate-900'}`}><div className="flex items-center gap-2 overflow-hidden"><span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] flex-shrink-0 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{item.quantity}</span><p className="font-bold text-xs truncate">{item.name}</p></div><p className="font-black font-oswald text-xs ml-2">{settings.currency}{((item.price + item.selectedSize.price) * item.quantity).toFixed(2)}</p></div>))}</div></section>
+        <section className="space-y-3">
+          <h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Your Details</h3>
+          <div className={`p-5 rounded-3xl border-2 space-y-3 ${isDark ? 'bg-slate-800/50 border-white/5 text-white' : 'bg-white border-slate-50 text-slate-900'}`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">👤</span>
+              <div className="overflow-hidden">
+                <p className="font-black text-sm truncate">{details.name}</p>
+                <p className="text-[10px] opacity-50 truncate">{details.phone}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 border-t pt-3 border-slate-100/10">
+              <span className="text-2xl">{details.diningMode === 'DELIVERY' ? '🚚' : '🥡'}</span>
+              <p className="font-black uppercase text-[10px]">{details.diningMode.replace('_', ' ')}</p>
+            </div>
+          </div>
+        </section>
+        <section className="space-y-3">
+          <h3 className="text-[8px] font-black uppercase tracking-widest opacity-40">Items</h3>
+          <div className="space-y-2">
+            {cart.map((item, idx) => (
+              <div key={idx} className={`p-3 rounded-2xl flex justify-between items-center ${isDark ? 'bg-slate-800/30 text-white' : 'bg-white shadow-sm text-slate-900'}`}>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] flex-shrink-0 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
+                    {item.quantity}
+                  </span>
+                  <p className="font-bold text-xs truncate">{item.name}</p>
+                </div>
+                <p className="font-black font-oswald text-xs ml-2">
+                  {settings.currency}{((item.price + item.selectedSize.price) * item.quantity).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
-      <div className={`flex-shrink-0 px-6 pb-8 pt-6 border-t rounded-t-[2.5rem] shadow-2xl ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}><div className="flex justify-between items-end mb-4"><span className="text-slate-400 font-black uppercase text-[10px]">Grand Total</span><span className="text-3xl font-black font-oswald" style={{ color: settings.primaryColor }}>{settings.currency}{total.toFixed(2)}</span></div><button onClick={onConfirm} disabled={isSubmitting} className="w-full text-white py-5 rounded-2xl text-xl font-black uppercase shadow-lg bg-[#86BC25]">{isSubmitting ? 'Processing...' : 'Place Order'}</button></div>
+      <div className={`flex-shrink-0 px-6 pb-8 pt-6 border-t rounded-t-[2.5rem] shadow-2xl ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
+        <div className="flex justify-between items-end mb-4">
+          <span className="text-slate-400 font-black uppercase text-[10px]">Grand Total</span>
+          <span className="text-3xl font-black font-oswald" style={{ color: settings.primaryColor }}>
+            {settings.currency}{total.toFixed(2)}
+          </span>
+        </div>
+        <button onClick={onConfirm} disabled={isSubmitting} className="w-full text-white py-5 rounded-2xl text-xl font-black uppercase shadow-lg bg-[#86BC25]">
+          {isSubmitting ? 'Processing...' : 'Place Order'}
+        </button>
+      </div>
     </div>
   );
 };
