@@ -1,7 +1,5 @@
 {
   "name": "LittleIndia Kiosk",
   "description": "A high-performance, kiosk-inspired mobile food ordering app with bold typography, fluid animations, and owner-managed recommendations.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }
