@@ -26,7 +26,6 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
 
-  // Robust path checking for /admin
   const checkIsAdmin = () => {
     const path = window.location.pathname.toLowerCase();
     return path === '/admin' || path === '/admin/' || path.endsWith('/admin') || path.endsWith('/admin/');
@@ -36,7 +35,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => { 
     setToast(msg); 
-    setTimeout(() => setToast(null), 3000); 
+    setTimeout(() => setToast(null), 4000); 
   }, []);
 
   const fetchSettings = useCallback(async () => {
@@ -61,7 +60,7 @@ export default function App() {
           products: prodRes.data.map(p => ({
             id: p.id,
             name: p.name,
-            price: parseFloat(p.price),
+            price: parseFloat(p.price) || 0,
             image: p.image,
             category: p.category_id,
             description: p.description,
@@ -194,6 +193,7 @@ export default function App() {
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     setIsSubmittingOrder(true);
     try {
+      // 1. Sync Configuration
       const { error: configError } = await supabase.from('kiosk_config').upsert({
         id: 1,
         brand_name: newSettings.brandName,
@@ -202,38 +202,48 @@ export default function App() {
         currency: newSettings.currency,
         working_hours: newSettings.workingHours,
         force_holidays: newSettings.forceHolidays,
-        notification_webhook_url: newSettings.notificationWebhookUrl
+        notification_webhook_url: newSettings.notificationWebhookUrl || ''
       });
+      if (configError) throw new Error(`Config Error: ${configError.message}`);
 
-      if (configError) throw configError;
+      // 2. Clear & Sync Categories (Order matters for Foreign Keys)
+      // We perform a soft-sync via upsert, or a hard sync via delete+insert
+      // If delete fails, it's likely RLS. 
+      const { error: delProdError } = await supabase.from('kiosk_products').delete().neq('id', '_root_');
+      const { error: delCatError } = await supabase.from('kiosk_categories').delete().neq('id', '_root_');
+      
+      if (delProdError || delCatError) {
+         console.warn("Delete stage failed, trying upsert only. Check RLS policies.");
+      }
 
-      await supabase.from('kiosk_products').delete().neq('id', '_root_');
-      await supabase.from('kiosk_categories').delete().neq('id', '_root_');
-
-      await supabase.from('kiosk_categories').insert(newSettings.categories.map(c => ({
+      // 3. Re-insert Categories
+      const { error: catError } = await supabase.from('kiosk_categories').upsert(newSettings.categories.map(c => ({
         id: c.id,
-        label: c.label,
-        icon: c.icon,
-        background_image: c.backgroundImage
+        label: c.label || 'New Category',
+        icon: c.icon || '📦',
+        background_image: c.backgroundImage || null
       })));
+      if (catError) throw new Error(`Category Error: ${catError.message}`);
 
-      await supabase.from('kiosk_products').insert(newSettings.products.map(p => ({
+      // 4. Re-insert Products
+      const { error: prodError } = await supabase.from('kiosk_products').upsert(newSettings.products.map(p => ({
         id: p.id,
-        name: p.name,
-        price: p.price,
-        image: p.image,
+        name: p.name || 'Untitled Item',
+        price: p.price || 0,
+        image: p.image || '',
         category_id: p.category,
-        description: p.description,
-        is_bestseller: p.isBestseller,
-        sizes: p.sizes,
-        addons: p.addons
+        description: p.description || '',
+        is_bestseller: !!p.isBestseller,
+        sizes: p.sizes || [],
+        addons: p.addons || []
       })));
+      if (prodError) throw new Error(`Product Error: ${prodError.message}`);
 
       setSettings(newSettings);
-      showToast("Sync Successful!");
-    } catch (err) {
-      console.error("Save failed:", err);
-      showToast("Sync failed.");
+      showToast("Settings Synced to Database!");
+    } catch (err: any) {
+      console.error("Sync failed detailed log:", err);
+      showToast(`Sync Failed: ${err.message || 'Check RLS Permissions'}`);
     } finally {
       setIsSubmittingOrder(false);
     }
