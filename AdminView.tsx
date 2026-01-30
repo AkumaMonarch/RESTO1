@@ -249,19 +249,31 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               </div>
               
               {showGuide && (
-                <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-3 animate-scale-up`}>
+                <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
                   <p className="font-black text-blue-500 uppercase tracking-widest">🚀 Make.com + Telegram Blueprint</p>
-                  <ol className="list-decimal list-inside space-y-2 font-bold opacity-80 leading-relaxed">
-                    <li>Create a scenario with a <span className="text-blue-500">Custom Webhook</span>.</li>
-                    <li>Add a <span className="text-blue-500">Telegram Bot: Send Message</span> module.</li>
-                    <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the message text.</li>
-                    <li>Use <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_actions</code> to create Inline Buttons.</li>
-                    <li>Set Callback Data for buttons as: <code className="bg-slate-800 px-1 rounded text-white text-[8px]">{"{{order_id}}|{{status}}"}</code>.</li>
-                  </ol>
+                  
+                  <div className="space-y-3">
+                    <p className="font-black border-b border-blue-500/10 pb-1">1. FIXING SILENT BUTTONS (IMPORTANT)</p>
+                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold">
+                      <li>Delete any "List Updates" nodes from your scenarios.</li>
+                      <li>Use ONLY a <span className="text-blue-500">Telegram Bot: Watch Updates</span> node.</li>
+                      <li>In that node, delete the webhook and add a **New** one to reset Telegram.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="font-black border-b border-blue-500/10 pb-1">2. TELEGRAM MODULE SETTINGS</p>
+                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
+                      <li>Add a <span className="text-blue-500">Telegram Bot: Send Message</span> module.</li>
+                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the message text.</li>
+                      <li>Set Callback Data for buttons as: <code className="bg-slate-800 px-1 rounded text-white text-[8px]">{"{{order_id}}|{{status}}"}</code>.</li>
+                    </ol>
+                  </div>
+
                   <div className="pt-2 border-t border-blue-500/10">
-                    <p className="text-[8px] opacity-40 font-black uppercase">Supabase Update API:</p>
+                    <p className="text-[8px] opacity-40 font-black uppercase">Supabase Update API (HTTP Module):</p>
                     <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all">
-                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{"{{order_id}}"}
+                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{"{{split(callback_query.data; \"|\")[1]}}"}
                     </code>
                   </div>
                 </div>
