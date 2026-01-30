@@ -35,7 +35,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => { 
     setToast(msg); 
-    setTimeout(() => setToast(null), 4000); 
+    setTimeout(() => setToast(null), 6000); 
   }, []);
 
   const fetchSettings = useCallback(async () => {
@@ -194,28 +194,34 @@ export default function App() {
     setIsSubmittingOrder(true);
     try {
       // 1. Sync Configuration
-      const { error: configError } = await supabase.from('kiosk_config').upsert({
+      const configPayload: any = {
         id: 1,
         brand_name: newSettings.brandName,
         primary_color: newSettings.primaryColor,
         theme_mode: newSettings.themeMode,
         currency: newSettings.currency,
         working_hours: newSettings.workingHours,
-        force_holidays: newSettings.forceHolidays,
-        notification_webhook_url: newSettings.notificationWebhookUrl || ''
-      });
-      if (configError) throw new Error(`Config Error: ${configError.message}`);
+        force_holidays: newSettings.forceHolidays
+      };
 
-      // 2. Clear & Sync Categories (Order matters for Foreign Keys)
-      // We perform a soft-sync via upsert, or a hard sync via delete+insert
-      // If delete fails, it's likely RLS. 
+      // Only include webhook if we aren't troubleshooting schema cache
+      if (newSettings.notificationWebhookUrl !== undefined) {
+        configPayload.notification_webhook_url = newSettings.notificationWebhookUrl || '';
+      }
+
+      const { error: configError } = await supabase.from('kiosk_config').upsert(configPayload);
+      
+      if (configError) {
+        if (configError.message.includes('notification_webhook_url')) {
+          throw new Error("Missing Column: Please run 'ALTER TABLE kiosk_config ADD COLUMN notification_webhook_url TEXT;' in Supabase SQL Editor.");
+        }
+        throw new Error(`Config Error: ${configError.message}`);
+      }
+
+      // 2. Clear & Sync Categories (Soft Sync)
       const { error: delProdError } = await supabase.from('kiosk_products').delete().neq('id', '_root_');
       const { error: delCatError } = await supabase.from('kiosk_categories').delete().neq('id', '_root_');
       
-      if (delProdError || delCatError) {
-         console.warn("Delete stage failed, trying upsert only. Check RLS policies.");
-      }
-
       // 3. Re-insert Categories
       const { error: catError } = await supabase.from('kiosk_categories').upsert(newSettings.categories.map(c => ({
         id: c.id,
@@ -243,7 +249,7 @@ export default function App() {
       showToast("Settings Synced to Database!");
     } catch (err: any) {
       console.error("Sync failed detailed log:", err);
-      showToast(`Sync Failed: ${err.message || 'Check RLS Permissions'}`);
+      showToast(err.message || 'Sync Failed. Check Supabase Policies.');
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -258,7 +264,7 @@ export default function App() {
   if (isDashboard) {
     return (
       <div className={`max-w-4xl mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
-        {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
+        {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
         <AdminView 
           settings={settings} 
           orders={liveOrders} 
