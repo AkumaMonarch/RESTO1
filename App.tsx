@@ -18,6 +18,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<AppView>(AppView.LANDING);
+  const [lang, setLang] = useState<'EN' | 'HI'>('EN');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', phone: '', address: '', diningMode: 'EAT_IN' });
@@ -120,9 +121,9 @@ export default function App() {
       if (idx > -1) { const n = [...prev]; n[idx].quantity += quantity; return n; } 
       return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }]; 
     }); 
-    showToast(`Added to Basket!`); 
+    showToast(lang === 'EN' ? 'Added to Basket!' : 'बास्केट में जोड़ा गया!'); 
     setView(AppView.MENU); 
-  }, [showToast]);
+  }, [showToast, lang]);
   
   const updateQuantity = useCallback((id: string, delta: number, index?: number) => { 
     setCart(prev => {
@@ -136,6 +137,21 @@ export default function App() {
       return prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0);
     }); 
   }, []);
+
+  const handleCallStaff = useCallback(() => {
+    if (settings.notificationWebhookUrl) {
+      fetch(settings.notificationWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: "ASSISTANCE",
+          message: "🛎️ STAFF ASSISTANCE REQUESTED AT KIOSK!",
+          kiosk_id: "Kiosk 01"
+        })
+      });
+      showToast(lang === 'EN' ? "Staff notified!" : "कर्मचारी को सूचित किया गया!");
+    }
+  }, [settings.notificationWebhookUrl, lang, showToast]);
 
   const handleOrderConfirmed = async () => {
     setIsSubmittingOrder(true);
@@ -156,7 +172,6 @@ export default function App() {
         if (settings.notificationWebhookUrl) {
           const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
           
-          // Generate exact Telegram JSON format
           const telegramMarkup = {
             inline_keyboard: [
               [
@@ -179,7 +194,7 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            telegram_markup: JSON.stringify(telegramMarkup) // Pass this directly to Make.com
+            telegram_markup: JSON.stringify(telegramMarkup)
           };
 
           fetch(settings.notificationWebhookUrl, {
@@ -217,11 +232,9 @@ export default function App() {
       const { error: configError } = await supabase.from('kiosk_config').upsert(configPayload);
       if (configError) throw new Error(`Config Error: ${configError.message}`);
 
-      // Clear existing safely
       await supabase.from('kiosk_products').delete().neq('id', '_root_');
       await supabase.from('kiosk_categories').delete().neq('id', '_root_');
       
-      // Re-insert Categories
       const { error: catError } = await supabase.from('kiosk_categories').upsert(newSettings.categories.map(c => ({
         id: c.id,
         label: c.label || 'New Category',
@@ -230,7 +243,6 @@ export default function App() {
       })));
       if (catError) throw new Error(`Category Error: ${catError.message}`);
 
-      // Re-insert Products
       const { error: prodError } = await supabase.from('kiosk_products').upsert(newSettings.products.map(p => ({
         id: p.id,
         name: p.name || 'Untitled Item',
@@ -282,14 +294,14 @@ export default function App() {
     <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
       {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
       
-      {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.CHECKOUT)} />}
-      {view === AppView.CHECKOUT && <CheckoutView settings={settings} onBack={() => setView(AppView.LANDING)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.MENU); }} />}
-      {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
-      {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />}
-      {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.USER_DETAILS)} />}
-      {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CART)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
-      {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />}
-      {view === AppView.ORDER_CONFIRMED && <OrderTrackerView settings={settings} currentOrder={currentOrder} onRestart={() => { setCart([]); setView(AppView.LANDING); }} />}
+      {view === AppView.LANDING && <LandingView settings={settings} lang={lang} onSetLang={setLang} onStart={() => setView(AppView.CHECKOUT)} />}
+      {view === AppView.CHECKOUT && <CheckoutView settings={settings} lang={lang} onBack={() => setView(AppView.LANDING)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.MENU); }} />}
+      {view === AppView.MENU && <MenuView settings={settings} lang={lang} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onCallStaff={handleCallStaff} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
+      {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} lang={lang} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />}
+      {view === AppView.CART && <CartView settings={settings} lang={lang} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.USER_DETAILS)} />}
+      {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} lang={lang} mode={userDetails.diningMode} onBack={() => setView(AppView.CART)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
+      {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} lang={lang} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />}
+      {view === AppView.ORDER_CONFIRMED && <OrderTrackerView settings={settings} lang={lang} currentOrder={currentOrder} onRestart={() => { setCart([]); setView(AppView.LANDING); }} />}
     </div>
   );
 }

@@ -3,7 +3,8 @@ import React from 'react';
 import { AppSettings, DiningMode } from './types';
 import { BackIcon } from './Icons';
 
-export const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void; onSelectMode: (method: DiningMode) => void }> = ({ settings, onBack, onSelectMode }) => {
+// Added lang to props to fix TypeScript error in App.tsx
+export const CheckoutView: React.FC<{ settings: AppSettings; lang: 'EN' | 'HI'; onBack: () => void; onSelectMode: (method: DiningMode) => void }> = ({ settings, lang, onBack, onSelectMode }) => {
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up ${isDark ? 'bg-[#0F172A]' : 'bg-[#F9FAFB]'}`}>
@@ -11,22 +12,26 @@ export const CheckoutView: React.FC<{ settings: AppSettings; onBack: () => void;
         <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
           <BackIcon />
         </button>
-        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Type</h2>
+        <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          {lang === 'EN' ? 'Order Type' : 'ऑर्डर का प्रकार'}
+        </h2>
       </header>
       <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center space-y-4">
-        <h3 className={`text-center font-black uppercase tracking-widest text-[10px] mb-2 opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Choose your service</h3>
+        <h3 className={`text-center font-black uppercase tracking-widest text-[10px] mb-2 opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>
+          {lang === 'EN' ? 'Choose your service' : 'अपनी सेवा चुनें'}
+        </h3>
         <div className="grid grid-cols-1 gap-3 w-full max-w-[280px]">
           <button onClick={() => onSelectMode('EAT_IN')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
             <span className="text-4xl">🍽️</span>
-            <span className="text-base font-black uppercase tracking-tight">Eat In</span>
+            <span className="text-base font-black uppercase tracking-tight">{lang === 'EN' ? 'Eat In' : 'यहीं खाएं'}</span>
           </button>
           <button onClick={() => onSelectMode('TAKE_AWAY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
             <span className="text-4xl">🥡</span>
-            <span className="text-base font-black uppercase tracking-tight">Take Away</span>
+            <span className="text-base font-black uppercase tracking-tight">{lang === 'EN' ? 'Take Away' : 'ले जाएं'}</span>
           </button>
           <button onClick={() => onSelectMode('DELIVERY')} className={`p-6 rounded-[2rem] border-2 flex flex-col items-center gap-2 transition-all active:scale-95 shadow-lg ${isDark ? 'bg-slate-800 border-white/5 text-white' : 'bg-white border-slate-100 text-slate-900'}`}>
             <span className="text-4xl">🚚</span>
-            <span className="text-base font-black uppercase tracking-tight">Delivery</span>
+            <span className="text-base font-black uppercase tracking-tight">{lang === 'EN' ? 'Delivery' : 'डिलीवरी'}</span>
           </button>
         </div>
       </div>

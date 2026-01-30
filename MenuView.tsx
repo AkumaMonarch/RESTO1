@@ -5,22 +5,19 @@ import { useGrabToScroll } from './useGrabToScroll';
 
 export const MenuView: React.FC<{
   settings: AppSettings;
+  lang: 'EN' | 'HI';
   onSelectProduct: (p: Product) => void;
   onGoToCart: () => void;
   onRestart: () => void;
+  onCallStaff: () => void;
   cartTotal: number;
   cartCount: number;
-}> = ({ settings, onSelectProduct, onGoToCart, onRestart, cartTotal, cartCount }) => {
+}> = ({ settings, lang, onSelectProduct, onGoToCart, onRestart, onCallStaff, cartTotal, cartCount }) => {
   const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'RECOMMENDED');
   const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
   const isDark = settings.themeMode === 'dark';
-
-  const isHoliday = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    return settings.forceHolidays.includes(todayStr);
-  }, [settings.forceHolidays]);
 
   const filteredProducts = useMemo(() => {
     let list = settings.products;
@@ -38,18 +35,18 @@ export const MenuView: React.FC<{
         <div className="flex items-center space-x-2">
            <div className="px-2 py-1 text-white font-black italic rounded-md text-[10px] shadow-sm transition-transform" style={{ backgroundColor: settings.primaryColor }}>{settings.brandName}</div>
            <h2 className={`text-base font-bold font-oswald tracking-tight uppercase overflow-hidden whitespace-nowrap text-ellipsis max-w-[120px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-             {searchQuery.trim() ? 'Search' : settings.categories.find(c => c.id === activeCategory)?.label || activeCategory}
+             {searchQuery.trim() ? (lang === 'EN' ? 'Search' : 'खोज') : settings.categories.find(c => c.id === activeCategory)?.label || activeCategory}
            </h2>
         </div>
         <div className="flex items-center space-x-2">
+          <button onClick={onCallStaff} className="w-10 h-10 flex items-center justify-center text-xl bg-amber-400 rounded-xl shadow-lg active:scale-90 transition-all">🛎️</button>
           <button onClick={onRestart} className="font-black uppercase tracking-wider text-[8px] border-2 px-3 py-2 rounded-lg transition-all active:scale-95 shadow-sm" style={{ borderColor: settings.primaryColor, color: settings.primaryColor }}>
-            RESTART
+            {lang === 'EN' ? 'RESTART' : 'रीस्टार्ट'}
           </button>
         </div>
       </header>
 
       <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
-        <div className="scroll-shimmer-h"></div>
         <div className="mask-edges">
           <nav {...navScrollProps} className="overflow-x-auto no-scrollbar py-4 px-4 flex flex-nowrap items-center space-x-3 z-10 touch-pan-x select-none">
             {settings.categories.map(cat => (
@@ -65,25 +62,11 @@ export const MenuView: React.FC<{
       </div>
 
       <main {...mainScrollProps} className="flex-1 overflow-y-auto p-3 no-scrollbar pb-32 smooth-scroll relative">
-        <div className="scroll-shimmer-v"></div>
-        
-        {/* Promotion Banner */}
-        {activeCategory === 'RECOMMENDED' && !searchQuery && (
-          <div className="mb-6 relative rounded-[2.5rem] overflow-hidden aspect-[16/9] shadow-2xl group animate-scale-up">
-            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="Promo" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
-               <span className="text-white text-[9px] font-black uppercase tracking-widest mb-1 opacity-60">Chef's Special</span>
-               <h4 className="text-white text-3xl font-black font-oswald leading-none tracking-tight">THE ULTIMATE BOX</h4>
-               <p className="text-white/60 text-[10px] font-bold mt-2">Limited time only. Starting from {settings.currency}45.00</p>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map(p => (
             <div key={p.id} onClick={() => onSelectProduct(p)} 
               className={`relative rounded-[2rem] border-2 transition-all active:scale-[0.98] flex items-stretch p-2.5 overflow-hidden min-h-[140px] cursor-pointer shadow-lg ${p.isBestseller ? 'border-amber-400 bg-amber-400/10' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
-              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic tracking-tighter shadow-md">Best Seller</div>}
+              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic tracking-tighter shadow-md">{lang === 'EN' ? 'Best Seller' : 'बेस्ट सेलर'}</div>}
               <div className={`w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center rounded-2xl mr-4 shrink-0 self-center overflow-hidden shadow-2xl ${isDark ? 'bg-[#0F172A]/80' : 'bg-slate-50'}`}>
                 <img src={p.image} alt={p.name} className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500" loading="lazy" />
               </div>
@@ -94,7 +77,7 @@ export const MenuView: React.FC<{
                 </div>
                 <div className="flex justify-between items-center mt-auto">
                   <span className={`text-xl font-black font-oswald tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {p.price.toFixed(2)}</span>
-                  <button disabled={isHoliday} className={`text-white w-11 h-11 rounded-full flex items-center justify-center text-2xl font-bold shadow-2xl active:scale-90 transition-all flex-shrink-0 leading-none pb-1 ${isHoliday ? 'opacity-30' : ''}`} style={{ backgroundColor: settings.primaryColor }}>+</button>
+                  <button className="text-white w-11 h-11 rounded-full flex items-center justify-center text-2xl font-bold shadow-2xl active:scale-90 transition-all pb-1" style={{ backgroundColor: settings.primaryColor }}>+</button>
                 </div>
               </div>
             </div>
@@ -107,7 +90,7 @@ export const MenuView: React.FC<{
            <div onClick={onGoToCart} className="flex-1 bg-[#86BC25] active:scale-95 transition-all text-white p-4 rounded-[2rem] flex items-center justify-between font-black shadow-sm cursor-pointer overflow-hidden">
             <div className="flex items-center space-x-3">
                <div className="bg-white text-[#86BC25] w-8 h-8 rounded-xl flex items-center justify-center shadow-md text-sm flex-shrink-0">{cartCount}</div>
-               <span className="text-sm uppercase tracking-tight whitespace-nowrap">View Basket</span>
+               <span className="text-sm uppercase tracking-tight whitespace-nowrap">{lang === 'EN' ? 'View Basket' : 'बास्केट देखें'}</span>
             </div>
             <span className="text-xl font-oswald tracking-wide whitespace-nowrap ml-3">{settings.currency} {cartTotal.toFixed(2)}</span>
           </div>

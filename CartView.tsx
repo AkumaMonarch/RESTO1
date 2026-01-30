@@ -3,14 +3,16 @@ import React from 'react';
 import { AppSettings, CartItem } from './types';
 import { BackIcon } from './Icons';
 
+// Added lang to props to fix TypeScript error in App.tsx
 export const CartView: React.FC<{
   settings: AppSettings;
+  lang: 'EN' | 'HI';
   items: CartItem[];
   onUpdateQuantity: (id: string, delta: number, index?: number) => void;
   onCheckout: () => void;
   onBack: () => void;
   total: number;
-}> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => {
+}> = ({ settings, lang, items, onUpdateQuantity, onCheckout, onBack, total }) => {
   const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden bg-animated-vertical ${isDark ? 'bg-[#0F172A] from-[#0F172A] via-[#1E293B] to-[#0F172A]' : 'bg-[#F9FAFB] from-[#F9FAFB] via-[#F1F5F9] to-[#F9FAFB]'}`}>
@@ -19,13 +21,13 @@ export const CartView: React.FC<{
           <button onClick={onBack} className={`p-2 rounded-xl flex items-center justify-center w-10 h-10 flex-shrink-0 shadow-sm border ${isDark ? 'bg-white/10 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-900'}`}>
             <BackIcon />
           </button>
-          <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Basket</h2>
+          <h2 className={`text-2xl font-black font-oswald uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{lang === 'EN' ? 'Basket' : 'बास्केट'}</h2>
         </div>
         <button 
           onClick={() => onUpdateQuantity('ALL', -9999)} 
           className="bg-red-500 text-white font-black uppercase text-[8px] tracking-widest px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shadow-red-500/20"
         >
-          CLEAR ALL
+          {lang === 'EN' ? 'CLEAR ALL' : 'सभी हटाएं'}
         </button>
       </header>
 
@@ -33,8 +35,12 @@ export const CartView: React.FC<{
         {items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
             <span className="text-5xl">🛒</span>
-            <p className={`font-black uppercase tracking-widest text-[10px] opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>Your basket is empty</p>
-            <button onClick={onBack} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest">Go to Menu</button>
+            <p className={`font-black uppercase tracking-widest text-[10px] opacity-40 ${isDark ? 'text-white' : 'text-slate-400'}`}>
+              {lang === 'EN' ? 'Your basket is empty' : 'आपकी बास्केट खाली है'}
+            </p>
+            <button onClick={onBack} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest">
+              {lang === 'EN' ? 'Go to Menu' : 'मेन्यू पर जाएं'}
+            </button>
           </div>
         )}
 
@@ -88,7 +94,7 @@ export const CartView: React.FC<{
       {items.length > 0 && (
         <div className={`flex-shrink-0 px-6 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-6 border-t rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.5)] space-y-6 z-30 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
           <div className="flex justify-between items-center">
-            <span className={`font-black uppercase text-xl tracking-tighter opacity-80 ${isDark ? 'text-white' : 'text-slate-900'}`}>TOTAL</span>
+            <span className={`font-black uppercase text-xl tracking-tighter opacity-80 ${isDark ? 'text-white' : 'text-slate-900'}`}>{lang === 'EN' ? 'TOTAL' : 'कुल योग'}</span>
             <span className="text-4xl font-black font-oswald text-[#E4002B]">
               {settings.currency}{total.toFixed(2)}
             </span>
@@ -99,7 +105,7 @@ export const CartView: React.FC<{
             className="w-full bg-[#86BC25] text-white py-5 rounded-3xl text-xl font-black uppercase shadow-2xl shadow-green-600/20 active:scale-[0.98] transition-all relative overflow-hidden group"
           >
             <div className="absolute top-1/2 left-4 right-4 h-1.5 bg-white/20 rounded-full -translate-y-1/2 opacity-30"></div>
-            <span className="relative z-10">Check Out</span>
+            <span className="relative z-10">{lang === 'EN' ? 'Check Out' : 'चेकआउट'}</span>
           </button>
         </div>
       )}

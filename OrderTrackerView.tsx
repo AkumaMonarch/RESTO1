@@ -3,36 +3,58 @@ import React, { useMemo } from 'react';
 import { AppSettings, Order } from './types';
 import { CheckIcon } from './Icons';
 
+// Updated interface to include lang to fix TypeScript error in App.tsx
 interface OrderTrackerViewProps {
   settings: AppSettings;
+  lang: 'EN' | 'HI';
   currentOrder: Order | undefined;
   onRestart: () => void;
 }
 
-export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, currentOrder, onRestart }) => {
+export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, lang, currentOrder, onRestart }) => {
   const isDark = settings.themeMode === 'dark';
   const status = currentOrder?.status || 'pending';
   const isDelivery = currentOrder?.customer_details.diningMode === 'DELIVERY';
 
   const steps = useMemo(() => {
     const baseSteps = [
-      { key: 'pending', label: 'Ordered', icon: '📝' },
-      { key: 'preparing', label: 'Preparing', icon: '👨‍🍳' },
+      { 
+        key: 'pending', 
+        label: lang === 'EN' ? 'Ordered' : 'ऑर्डर दिया गया', 
+        icon: '📝' 
+      },
+      { 
+        key: 'preparing', 
+        label: lang === 'EN' ? 'Preparing' : 'तैयार किया जा रहा है', 
+        icon: '👨‍🍳' 
+      },
     ];
 
     if (isDelivery) {
       return [
         ...baseSteps,
-        { key: 'out_for_delivery', label: 'On Way', icon: '🚴' },
-        { key: 'completed', label: 'Delivered', icon: '🏠' }
+        { 
+          key: 'out_for_delivery', 
+          label: lang === 'EN' ? 'On Way' : 'रास्ते में', 
+          icon: '🚴' 
+        },
+        { 
+          key: 'completed', 
+          label: lang === 'EN' ? 'Delivered' : 'डिलीवर किया गया', 
+          icon: '🏠' 
+        }
       ];
     }
 
     return [
       ...baseSteps,
-      { key: 'ready', label: 'Ready', icon: '✨' }
+      { 
+        key: 'ready', 
+        label: lang === 'EN' ? 'Ready' : 'तैयार है', 
+        icon: '✨' 
+      }
     ];
-  }, [isDelivery]);
+  }, [isDelivery, lang]);
 
   const getStepIndex = (s: string) => {
     if (s === 'pending') return 0;
@@ -52,7 +74,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, cu
     <div className={`h-full flex flex-col items-center p-8 transition-colors duration-700 ${status === 'ready' || (isDelivery && status === 'completed') ? 'bg-green-600 text-white' : isDark ? 'bg-[#0F172A] text-white' : 'bg-white text-slate-900'}`}>
       <div className="flex-1 w-full flex flex-col items-center justify-center space-y-12">
         <div className="text-center space-y-3">
-          <p className={`text-[10px] font-black uppercase tracking-[0.4em] opacity-40 ${status === 'ready' || (isDelivery && status === 'completed') ? 'text-white' : ''}`}>Your Order Number</p>
+          <p className={`text-[10px] font-black uppercase tracking-[0.4em] opacity-40 ${status === 'ready' || (isDelivery && status === 'completed') ? 'text-white' : ''}`}>
+            {lang === 'EN' ? 'Your Order Number' : 'आपका ऑर्डर नंबर'}
+          </p>
           <h2 className={`text-7xl font-black font-oswald italic tracking-tighter ${status === 'ready' || (isDelivery && status === 'completed') ? 'text-white' : 'text-blue-500'}`}>
             #{currentOrder?.order_number || '---'}
           </h2>
@@ -83,7 +107,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, cu
                     {idx + 1}. {step.label}
                   </span>
                   <span className="text-[8px] font-bold opacity-40 uppercase tracking-tighter">
-                    {isActive ? 'Current Stage' : isCompleted ? 'Completed' : 'Waiting'}
+                    {isActive ? (lang === 'EN' ? 'Current Stage' : 'वर्तमान चरण') : isCompleted ? (lang === 'EN' ? 'Completed' : 'पूरा हुआ') : (lang === 'EN' ? 'Waiting' : 'प्रतीक्षा')}
                   </span>
                 </div>
               </div>
@@ -93,8 +117,12 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, cu
 
         {(status === 'ready' || (isDelivery && status === 'completed')) && (
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-[2rem] text-center animate-bounce border border-white/20 shadow-2xl">
-            <h3 className="text-xl font-black uppercase tracking-tight">Enjoy Your Meal!</h3>
-            <p className="text-[10px] font-bold opacity-80 uppercase mt-1">{isDelivery ? 'Delivered successfully' : 'Pick it up at the counter'}</p>
+            <h3 className="text-xl font-black uppercase tracking-tight">
+              {lang === 'EN' ? 'Enjoy Your Meal!' : 'अपने भोजन का आनंद लें!'}
+            </h3>
+            <p className="text-[10px] font-bold opacity-80 uppercase mt-1">
+              {isDelivery ? (lang === 'EN' ? 'Delivered successfully' : 'सफलतापूर्वक वितरित किया गया') : (lang === 'EN' ? 'Pick it up at the counter' : 'काउंटर से प्राप्त करें')}
+            </p>
           </div>
         )}
       </div>
@@ -106,7 +134,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, cu
             status === 'ready' || (isDelivery && status === 'completed') ? 'bg-white text-green-600' : isDark ? 'bg-blue-600 text-white' : 'bg-slate-900 text-white'
           }`}
         >
-          Finished / New Order
+          {lang === 'EN' ? 'Finished / New Order' : 'समाप्त / नया ऑर्डर'}
         </button>
       </div>
     </div>
