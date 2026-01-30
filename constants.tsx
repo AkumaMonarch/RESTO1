@@ -112,4 +112,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   products: DEFAULT_PRODUCTS,
   workingHours: DEFAULT_WORKING_HOURS,
   forceHolidays: [],
+  notificationWebhookUrl: '',
 };

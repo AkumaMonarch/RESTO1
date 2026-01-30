@@ -2,17 +2,15 @@
 import React, { useState, useMemo } from 'react';
 import { AppSettings, Product, CategoryType } from './types';
 import { useGrabToScroll } from './useGrabToScroll';
-import { AdminIcon } from './Icons';
 
 export const MenuView: React.FC<{
   settings: AppSettings;
   onSelectProduct: (p: Product) => void;
   onGoToCart: () => void;
   onRestart: () => void;
-  onAdmin: () => void;
   cartTotal: number;
   cartCount: number;
-}> = ({ settings, onSelectProduct, onGoToCart, onRestart, onAdmin, cartTotal, cartCount }) => {
+}> = ({ settings, onSelectProduct, onGoToCart, onRestart, cartTotal, cartCount }) => {
   const [activeCategory, setActiveCategory] = useState<CategoryType>(settings.categories[0]?.id || 'RECOMMENDED');
   const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
@@ -44,9 +42,6 @@ export const MenuView: React.FC<{
            </h2>
         </div>
         <div className="flex items-center space-x-2">
-          <button onClick={onAdmin} className={`p-2 rounded-lg transition-all active:scale-90 border shadow-sm ${isDark ? 'bg-white/5 border-white/10 text-white/40' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-            <AdminIcon />
-          </button>
           <button onClick={onRestart} className="font-black uppercase tracking-wider text-[8px] border-2 px-3 py-2 rounded-lg transition-all active:scale-95 shadow-sm" style={{ borderColor: settings.primaryColor, color: settings.primaryColor }}>
             RESTART
           </button>

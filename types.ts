@@ -47,6 +47,7 @@ export interface AppSettings {
   products: Product[];
   workingHours: WorkingDay[];
   forceHolidays: string[];
+  notificationWebhookUrl?: string;
 }
 
 export interface CartItem extends Product {
@@ -56,6 +57,18 @@ export interface CartItem extends Product {
 }
 
 export type DiningMode = 'EAT_IN' | 'TAKE_AWAY' | 'DELIVERY';
+
+export type OrderStatus = 'pending' | 'preparing' | 'out_for_delivery' | 'ready' | 'completed' | 'cancelled';
+
+export interface Order {
+  id: string;
+  order_number: number;
+  customer_details: UserDetails;
+  cart_items: CartItem[];
+  total_price: number;
+  status: OrderStatus;
+  created_at: string;
+}
 
 export interface UserDetails {
   name: string;

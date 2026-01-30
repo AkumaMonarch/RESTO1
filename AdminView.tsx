@@ -1,18 +1,48 @@
 
 import React, { useState, useRef } from 'react';
-import { AppSettings, Category, Product } from './types';
+import { AppSettings, Category, Product, Order, OrderStatus } from './types';
 import { BackIcon, TrashIcon, SearchIcon, CameraIcon, UploadIcon, ChevronDownIcon, CheckIcon } from './Icons';
 import { THEME_PRESETS } from './constants';
+import { supabase } from './supabase';
 
-export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSettings) => void; onBack: () => void }> = ({ settings, onSave, onBack }) => {
+interface AdminViewProps {
+  settings: AppSettings;
+  orders: Order[];
+  isLive: boolean;
+  onSave: (s: AppSettings) => Promise<void>;
+  onBack: () => void;
+}
+
+const compressImageToBlob = (base64: string, maxWidth = 1000, quality = 0.8): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = base64;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => { if (blob) resolve(blob); }, 'image/jpeg', quality);
+    };
+  });
+};
+
+export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, onSave, onBack }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-  const [activeTab, setActiveTab] = useState<'General' | 'Categories' | 'Products'>('General');
-  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'Orders' | 'Products' | 'Categories' | 'General'>('Orders');
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   
-  // Use the local setting for immediate visual feedback in the admin panel
   const isDark = localSettings.themeMode === 'dark';
-
   const camInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentEditingProdId, setCurrentEditingProdId] = useState<string | null>(null);
@@ -22,42 +52,59 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
   const labelStyles = "text-[9px] font-black uppercase tracking-widest opacity-40 px-1 mb-1.5 block";
   const actionButtonStyles = `flex items-center justify-center rounded-xl transition-all border p-3 shadow-sm active:scale-95 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-blue-600'}`;
 
-  const toggleDay = (day: string) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      workingHours: prev.workingHours.map(wh => wh.day === day ? { ...wh, isOpen: !wh.isOpen } : wh)
-    }));
-  };
-
-  const updateTime = (day: string, field: 'openTime' | 'closeTime', val: string) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      workingHours: prev.workingHours.map(wh => wh.day === day ? { ...wh, [field]: val } : wh)
-    }));
-  };
-
-  const addHoliday = (date: string) => {
-    if (!date) return;
-    setLocalSettings(prev => ({ ...prev, forceHolidays: Array.from(new Set([...prev.forceHolidays, date])) }));
-  };
-
-  const removeHoliday = (date: string) => {
-    setLocalSettings(prev => ({ ...prev, forceHolidays: prev.forceHolidays.filter(d => d !== date) }));
-  };
-
   const updateProduct = (id: string, field: keyof Product, val: any) => {
     setLocalSettings(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    setUpdatingStatusId(orderId);
+    try {
+      const { error } = await supabase.from('kiosk_orders').update({ status }).eq('id', orderId);
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Status update failed.", err);
+      alert(`Error updating status: ${err.message}`);
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && currentEditingProdId) {
+    const productId = currentEditingProdId;
+    if (file && productId) {
+      setUploadingImage(productId);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        updateProduct(currentEditingProdId, 'image', reader.result as string);
-        setCurrentEditingProdId(null);
+      reader.onloadend = async () => {
+        const rawBase64 = reader.result as string;
+        try {
+          const blob = await compressImageToBlob(rawBase64);
+          const fileName = `${productId}-${Date.now()}.jpg`;
+          const filePath = `products/${fileName}`;
+          const { error: uploadError } = await supabase.storage
+            .from('kiosk-assets')
+            .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+          if (uploadError) throw uploadError;
+          const { data: { publicUrl } } = supabase.storage.from('kiosk-assets').getPublicUrl(filePath);
+          updateProduct(productId, 'image', publicUrl);
+        } catch (err: any) {
+          console.error("Upload error:", err);
+          updateProduct(productId, 'image', rawBase64);
+        } finally {
+          setUploadingImage(null);
+          setCurrentEditingProdId(null);
+        }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(localSettings);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -68,123 +115,146 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
 
       <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] border-b flex items-center justify-between ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center space-x-2">
-          <button onClick={onBack} className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}><BackIcon /></button>
-          <h2 className="font-black text-lg font-oswald uppercase tracking-tight">Admin Dashboard</h2>
+          <button onClick={onBack} disabled={isSaving} className={`p-2 rounded-xl border ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'} disabled:opacity-20`}><BackIcon /></button>
+          <div className="flex flex-col">
+            <h2 className="font-black text-sm font-oswald uppercase tracking-tight leading-none">Admin</h2>
+            <div className="flex items-center gap-1 mt-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+              <span className="text-[8px] font-black uppercase opacity-40 tracking-widest">Live Sync</span>
+            </div>
+          </div>
         </div>
-        <button onClick={() => onSave(localSettings)} className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all">Save Changes</button>
+        {activeTab !== 'Orders' && (
+          <button 
+            onClick={handleSave} 
+            disabled={isSaving || !!uploadingImage}
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSaving ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div><span>Saving...</span></> : 'Save Sync'}
+          </button>
+        )}
       </header>
 
-      <div className={`flex-shrink-0 flex border-b ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
-        {(['General', 'Categories', 'Products'] as const).map(t => (
-          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
-            {t}
+      <div className={`flex-shrink-0 flex border-b overflow-x-auto no-scrollbar ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
+        {(['Orders', 'Products', 'Categories', 'General'] as const).map(t => (
+          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
+            {t}{t === 'Orders' && orders.filter(o => o.status === 'pending' || o.status === 'preparing').length > 0 && (
+              <span className="ml-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-[7px]">{orders.filter(o => o.status === 'pending' || o.status === 'preparing').length}</span>
+            )}
             {activeTab === t && <div className="absolute bottom-0 left-1/4 right-1/4 h-1 bg-blue-500 rounded-t-full"></div>}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
-        {activeTab === 'General' && (
-          <div className="space-y-6">
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Brand Identity</h3>
-              <div className={cardStyles}>
-                <div className="space-y-4">
-                  <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
-                  <div><label className={labelStyles}>Currency Symbol</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
-                </div>
+        {activeTab === 'Orders' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center px-1">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Live Kitchen Feed</h3>
+              <p className="text-[7px] opacity-40 font-black uppercase tracking-widest">Automatic Refresh</p>
+            </div>
+            
+            {orders.length === 0 ? (
+              <div className="py-20 text-center opacity-30 space-y-2">
+                <span className="text-4xl">🍳</span>
+                <p className="text-[10px] font-black uppercase tracking-widest">Kitchen is quiet...</p>
               </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Theme & Visuals</h3>
-              <div className={cardStyles}>
-                <div className="space-y-5">
-                  <div>
-                    <label className={labelStyles}>App Theme</label>
-                    <div className={`flex p-1 rounded-2xl gap-1 border-2 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
-                      <button 
-                        onClick={() => setLocalSettings({...localSettings, themeMode: 'light'})}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'light' ? (isDark ? 'bg-white text-slate-900 shadow-xl' : 'bg-white shadow-md text-slate-900') : 'text-slate-400'}`}
-                      >
-                        <span className="text-xl">☀️</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Light</span>
-                      </button>
-                      <button 
-                        onClick={() => setLocalSettings({...localSettings, themeMode: 'dark'})}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'dark' ? 'bg-slate-800 shadow-xl text-white border border-white/10' : 'text-slate-500'}`}
-                      >
-                        <span className="text-xl">🌙</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Dark</span>
-                      </button>
+            ) : (
+              orders.map(order => (
+                <div key={order.id} className={`${cardStyles} border-l-4 transition-all relative ${order.status === 'pending' ? 'border-amber-500 bg-amber-500/5' : order.status === 'preparing' ? 'border-blue-500' : order.status === 'ready' || order.status === 'out_for_delivery' ? 'border-green-500 bg-green-500/10' : 'border-slate-300 opacity-60'}`}>
+                  {updatingStatusId === order.id && <div className="absolute inset-0 bg-white/20 dark:bg-black/20 flex items-center justify-center z-10 rounded-2xl backdrop-blur-[1px]"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <span className="text-2xl font-black font-oswald text-blue-500">#{order.order_number}</span>
+                      <p className="text-[11px] font-black uppercase mt-1">{order.customer_details.name}</p>
+                      <p className="text-[9px] font-bold opacity-40">{order.customer_details.phone}</p>
+                      <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded mt-1 inline-block ${order.customer_details.diningMode === 'DELIVERY' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'}`}>
+                        {order.customer_details.diningMode.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-black text-blue-500">{localSettings.currency}{order.total_price.toFixed(2)}</span>
+                      <p className="text-[8px] opacity-40 uppercase tracking-tighter mt-1">{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </div>
                   
+                  <div className="space-y-1.5 mb-4 border-t border-dashed border-white/10 pt-3">
+                    {order.cart_items.map((item, i) => (
+                      <div key={i} className="flex justify-between text-[11px] font-bold">
+                        <span className="flex gap-2">
+                           <span className="text-blue-500 font-black">{item.quantity}x</span>
+                           <span>{item.name}</span>
+                        </span>
+                        <span className="text-[9px] opacity-40 uppercase">{item.selectedSize.label}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => updateOrderStatus(order.id, 'preparing')} className={`py-3 rounded-xl text-[9px] font-black uppercase border transition-all active:scale-95 ${order.status === 'preparing' ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'border-blue-500/30 text-blue-500'}`}>Prepare</button>
+                    {order.customer_details.diningMode === 'DELIVERY' ? (
+                      <button onClick={() => updateOrderStatus(order.id, 'out_for_delivery')} className={`py-3 rounded-xl text-[9px] font-black uppercase border transition-all active:scale-95 ${order.status === 'out_for_delivery' ? 'bg-orange-600 border-orange-600 text-white shadow-lg' : 'border-orange-500/30 text-orange-500'}`}>Send Out</button>
+                    ) : (
+                      <button onClick={() => updateOrderStatus(order.id, 'ready')} className={`py-3 rounded-xl text-[9px] font-black uppercase border transition-all active:scale-95 ${order.status === 'ready' ? 'bg-green-600 border-green-600 text-white shadow-lg' : 'border-green-500/30 text-green-500'}`}>Ready</button>
+                    )}
+                    <button onClick={() => updateOrderStatus(order.id, 'completed')} className="col-span-2 py-3 rounded-xl text-[9px] font-black uppercase border border-slate-500/30 text-slate-500 active:scale-95">Complete Order</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeTab === 'General' && (
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Integrations</h3>
+              <div className={cardStyles}>
+                <div className="space-y-4">
                   <div>
-                    <label className={labelStyles}>Primary Accent Color</label>
+                    <label className={labelStyles}>Make.com Webhook URL</label>
+                    <p className="text-[8px] opacity-40 font-bold mb-2">Send orders to Telegram/WhatsApp via Make Automation.</p>
+                    <input 
+                      type="url"
+                      placeholder="https://hook.make.com/..."
+                      className={inputStyles} 
+                      value={localSettings.notificationWebhookUrl || ''} 
+                      onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Identity</h3>
+              <div className={cardStyles}>
+                <div className="space-y-4">
+                  <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
+                  <div><label className={labelStyles}>Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
+                </div>
+              </div>
+            </section>
+            
+            <section className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Style</h3>
+              <div className={cardStyles}>
+                <div className="space-y-5">
+                  <div>
+                    <label className={labelStyles}>Theme</label>
+                    <div className={`flex p-1 rounded-2xl gap-1 border-2 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                      <button onClick={() => setLocalSettings({...localSettings, themeMode: 'light'})} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'light' ? 'bg-white shadow-md text-slate-900' : 'text-slate-400'}`}>☀️ <span className="text-[10px] font-black uppercase tracking-widest">Light</span></button>
+                      <button onClick={() => setLocalSettings({...localSettings, themeMode: 'dark'})} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'dark' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>🌙 <span className="text-[10px] font-black uppercase tracking-widest">Dark</span></button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelStyles}>Primary Color</label>
                     <div className="flex flex-wrap gap-3 mt-2">
                       {THEME_PRESETS.map(preset => (
-                        <button 
-                          key={preset.id} 
-                          onClick={() => setLocalSettings({...localSettings, primaryColor: preset.color})}
-                          className={`w-12 h-12 rounded-2xl border-4 transition-all active:scale-90 flex items-center justify-center ${localSettings.primaryColor === preset.color ? (isDark ? 'border-white' : 'border-slate-900') : 'border-transparent'}`}
-                          style={{ backgroundColor: preset.color }}
-                        >
-                          {localSettings.primaryColor === preset.color && <CheckIcon className="text-white w-5 h-5" />}
-                        </button>
+                        <button key={preset.id} onClick={() => setLocalSettings({...localSettings, primaryColor: preset.color})} className={`w-12 h-12 rounded-2xl border-4 transition-all active:scale-90 flex items-center justify-center ${localSettings.primaryColor === preset.color ? (isDark ? 'border-white' : 'border-slate-900') : 'border-transparent'}`} style={{ backgroundColor: preset.color }}>{localSettings.primaryColor === preset.color && <CheckIcon className="text-white w-5 h-5" />}</button>
                       ))}
-                      <div className="flex-1 min-w-[120px]">
-                        <input 
-                          type="color" 
-                          className={`w-full h-12 rounded-2xl cursor-pointer border-2 ${isDark ? 'border-white/5 bg-[#0F172A]' : 'border-slate-100 bg-white'}`}
-                          value={localSettings.primaryColor} 
-                          onChange={e => setLocalSettings({...localSettings, primaryColor: e.target.value})}
-                        />
-                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Weekly Schedule</h3>
-              <div className="space-y-3">
-                {localSettings.workingHours.map(wh => (
-                  <div key={wh.day} className={cardStyles}>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="font-black text-[11px] uppercase">{wh.day}</span>
-                      <button onClick={() => toggleDay(wh.day)} className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${wh.isOpen ? 'bg-green-600 text-white' : 'bg-slate-700 text-white/30'}`}>{wh.isOpen ? 'Open' : 'Closed'}</button>
-                    </div>
-                    {wh.isOpen && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <input type="time" value={wh.openTime} onChange={e => updateTime(wh.day, 'openTime', e.target.value)} className={inputStyles} />
-                        <input type="time" value={wh.closeTime} onChange={e => updateTime(wh.day, 'closeTime', e.target.value)} className={inputStyles} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Holiday Calendar</h3>
-              <div className={cardStyles}>
-                <div className="flex gap-2 mb-4">
-                  <input type="date" className={inputStyles} id="new-holiday-input" />
-                  <button onClick={() => {
-                    const el = document.getElementById('new-holiday-input') as HTMLInputElement;
-                    addHoliday(el.value);
-                    el.value = '';
-                  }} className="bg-slate-900 text-white px-5 rounded-xl text-xl font-bold active:scale-95 transition-all shadow-lg">+</button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {localSettings.forceHolidays.map(d => (
-                    <div key={d} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2 border ${isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
-                      {d} <button onClick={() => removeHoliday(d)} className="hover:opacity-70">✕</button>
-                    </div>
-                  ))}
-                  {localSettings.forceHolidays.length === 0 && <p className="text-[10px] opacity-40 italic py-2">No holidays scheduled.</p>}
                 </div>
               </div>
             </section>
@@ -192,167 +262,60 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
         )}
 
         {activeTab === 'Categories' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center px-1">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Folders</h3>
-              <button onClick={() => {
-                const id = `CAT_${Date.now()}`;
-                setLocalSettings(prev => ({ ...prev, categories: [...prev.categories, { id, label: 'New Category', icon: '📦' }] }));
-              }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Add New</button>
+          <div className="space-y-3">
+             <div className="flex justify-between items-center px-1 mb-2">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Folders</h3>
+              <button onClick={() => { const id = `CAT_${Date.now()}`; setLocalSettings(prev => ({ ...prev, categories: [...prev.categories, { id, label: 'New Folder', icon: '🍟' }] })); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Add New</button>
             </div>
-            <div className="space-y-3">
-              {localSettings.categories.map((cat, idx) => (
-                <div key={cat.id} className={cardStyles}>
-                  <div className="flex items-center gap-2">
-                    <input className={`${inputStyles} w-14 text-center text-lg p-2`} value={cat.icon} onChange={e => {
-                      const n = [...localSettings.categories]; n[idx].icon = e.target.value; setLocalSettings({...localSettings, categories: n});
-                    }} />
-                    <input className={`${inputStyles} flex-1 p-2`} value={cat.label} onChange={e => {
-                      const n = [...localSettings.categories]; n[idx].label = e.target.value; setLocalSettings({...localSettings, categories: n});
-                    }} />
-                    {cat.id !== 'RECOMMENDED' ? (
-                      <button onClick={() => setLocalSettings({...localSettings, categories: localSettings.categories.filter(c => c.id !== cat.id)})} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
-                        <TrashIcon />
-                      </button>
-                    ) : (
-                      <div className="p-3 opacity-10 cursor-not-allowed">
-                        <TrashIcon />
-                      </div>
-                    )}
-                  </div>
-                  {cat.id === 'RECOMMENDED' && (
-                    <p className="text-[8px] font-black uppercase tracking-widest text-blue-500 mt-2 px-1 opacity-60">System Category • Cannot be deleted</p>
-                  )}
+            {localSettings.categories.map((cat, idx) => (
+              <div key={cat.id} className={cardStyles}>
+                <div className="flex items-center gap-2">
+                  <input className={`${inputStyles} w-14 text-center p-2`} value={cat.icon} onChange={e => { const n = [...localSettings.categories]; n[idx].icon = e.target.value; setLocalSettings({...localSettings, categories: n}); }} />
+                  <input className={`${inputStyles} flex-1 p-2`} value={cat.label} onChange={e => { const n = [...localSettings.categories]; n[idx].label = e.target.value; setLocalSettings({...localSettings, categories: n}); }} />
+                  <button onClick={() => setLocalSettings({...localSettings, categories: localSettings.categories.filter(c => c.id !== cat.id)})} className="p-3 text-red-500 active:scale-90 transition-transform"><TrashIcon /></button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'Products' && (
-          <div className="space-y-6">
-            <div className="px-1 space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Catalog</h3>
-                <button onClick={() => {
-                  const id = `PROD_${Date.now()}`;
-                  const n = [{ id, name: 'New Item', price: 0, category: localSettings.categories[0]?.id, description: '', sizes: [], addons: [], image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80' }, ...localSettings.products];
-                  setLocalSettings({...localSettings, products: n});
-                  setExpandedProducts(prev => ({...prev, [id]: true}));
-                }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg active:scale-95 transition-all">Add Product</button>
-              </div>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30"><SearchIcon /></div>
-                <input className={`${inputStyles} pl-10 py-2`} placeholder="Filter items..." value={productSearchQuery} onChange={e => setProductSearchQuery(e.target.value)} />
-              </div>
+          <div className="space-y-4">
+             <div className="flex justify-between items-center px-1 mb-2">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
+              <button onClick={() => { const id = `PROD_${Date.now()}`; setLocalSettings(prev => ({ ...prev, products: [{ id, name: 'New Item', price: 0, category: localSettings.categories[0]?.id || 'BURGERS', description: '', sizes: [], addons: [], image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c' }, ...prev.products] })); setExpandedProducts(prev => ({...prev, [id]: true})); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Add Item</button>
             </div>
-            
-            <div className="space-y-4">
-              {localSettings.products.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).map((prod, idx) => (
-                <div key={prod.id} className={cardStyles}>
-                  <div className="flex gap-4 items-center">
-                    <img src={prod.image} className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                    <div className="flex-1 overflow-hidden">
-                      <input className={`${inputStyles} border-transparent bg-transparent p-0 mb-1 hover:border-white/10`} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} />
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-blue-500">{localSettings.currency}{prod.price.toFixed(2)}</span>
-                        <span className="text-[8px] opacity-30">•</span>
-                        <span className="text-[10px] font-black opacity-30 uppercase">{localSettings.categories.find(c => c.id === prod.category)?.label}</span>
-                      </div>
-                    </div>
-                    <button onClick={() => setExpandedProducts(prev => ({...prev, [prod.id]: !prev[prod.id]}))} className="p-2 opacity-40 hover:opacity-100 transition-opacity">
-                      <ChevronDownIcon className={`transition-transform duration-300 ${expandedProducts[prod.id] ? 'rotate-180' : ''}`} />
-                    </button>
+            {localSettings.products.map(prod => (
+              <div key={prod.id} className={cardStyles}>
+                <div className="flex gap-4 items-center">
+                  <div className="relative w-12 h-12 shrink-0">
+                    <img src={prod.image} className={`w-full h-full rounded-xl object-cover ${uploadingImage === prod.id ? 'opacity-30' : 'opacity-100'}`} />
+                    {uploadingImage === prod.id && <div className="absolute inset-0 flex items-center justify-center"><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}
                   </div>
-
-                  {expandedProducts[prod.id] && (
-                    <div className="mt-4 space-y-4 animate-scale-up pt-4 border-t border-white/5">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><label className={labelStyles}>Base Price</label><input type="number" step="0.01" className={inputStyles} value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} /></div>
-                        <div><label className={labelStyles}>Category</label><select className={inputStyles} value={prod.category} onChange={e => updateProduct(prod.id, 'category', e.target.value)}>{localSettings.categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select></div>
-                      </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="font-black text-xs truncate">{prod.name}</p>
+                    <p className="text-[10px] font-black text-blue-500">{localSettings.currency}{prod.price.toFixed(2)}</p>
+                  </div>
+                  <button onClick={() => setExpandedProducts(prev => ({...prev, [prod.id]: !prev[prod.id]}))}><ChevronDownIcon className={`transition-transform duration-300 ${expandedProducts[prod.id] ? 'rotate-180' : ''}`} /></button>
+                </div>
+                {expandedProducts[prod.id] && (
+                  <div className="mt-4 space-y-4 border-t border-white/5 pt-4 animate-scale-up">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className={labelStyles}>Price</label><input type="number" step="0.01" className={inputStyles} value={prod.price} onChange={e => updateProduct(prod.id, 'price', parseFloat(e.target.value))} /></div>
                       <div>
-                        <label className={labelStyles}>Asset Source</label>
-                        <div className="flex gap-2">
-                          <input className={inputStyles} value={prod.image} onChange={e => updateProduct(prod.id, 'image', e.target.value)} />
-                          <button onClick={() => { setCurrentEditingProdId(prod.id); camInputRef.current?.click(); }} className={actionButtonStyles}><CameraIcon /></button>
-                          <button onClick={() => { setCurrentEditingProdId(prod.id); fileInputRef.current?.click(); }} className={actionButtonStyles}><UploadIcon /></button>
-                        </div>
-                      </div>
-                      <div><label className={labelStyles}>Detailed Description</label><textarea rows={2} className={`${inputStyles} resize-none`} value={prod.description} onChange={e => updateProduct(prod.id, 'description', e.target.value)} /></div>
-                      
-                      {/* Portion Sizes Manager */}
-                      <div className="space-y-3 pt-3 border-t border-white/5">
-                        <div className="flex justify-between items-center px-1">
-                          <label className={labelStyles}>Portion Sizes</label>
-                          <button onClick={() => {
-                            const n = [...(prod.sizes || []), { label: 'New Size', price: 0 }];
-                            updateProduct(prod.id, 'sizes', n);
-                          }} className="text-[9px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Size</button>
-                        </div>
-                        <div className="space-y-2">
-                          {(prod.sizes || []).map((sz, szIdx) => (
-                            <div key={szIdx} className="flex gap-2 animate-scale-up">
-                              <input className={`${inputStyles} flex-1`} value={sz.label} placeholder="Size (e.g. Large)" onChange={e => {
-                                const n = [...prod.sizes]; n[szIdx].label = e.target.value; updateProduct(prod.id, 'sizes', n);
-                              }} />
-                              <input className={`${inputStyles} w-24`} type="number" step="0.01" value={sz.price} placeholder="Add. Price" onChange={e => {
-                                const n = [...prod.sizes]; n[szIdx].price = parseFloat(e.target.value) || 0; updateProduct(prod.id, 'sizes', n);
-                              }} />
-                              <button onClick={() => {
-                                const n = prod.sizes.filter((_, i) => i !== szIdx); updateProduct(prod.id, 'sizes', n);
-                              }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
-                            </div>
-                          ))}
-                          {(!prod.sizes || prod.sizes.length === 0) && <p className="text-[9px] opacity-30 italic px-1">No custom sizes defined.</p>}
-                        </div>
-                      </div>
-
-                      {/* Add-ons Manager */}
-                      <div className="space-y-3 pt-3 border-t border-white/5">
-                        <div className="flex justify-between items-center px-1">
-                          <label className={labelStyles}>Extra Add-ons</label>
-                          <button onClick={() => {
-                            const n = [...(prod.addons || []), { label: 'New Extra', price: 0 }];
-                            updateProduct(prod.id, 'addons', n);
-                          }} className="text-[9px] font-black uppercase text-blue-500 hover:opacity-70">+ Add Extra</button>
-                        </div>
-                        <div className="space-y-2">
-                          {(prod.addons || []).map((ad, adIdx) => (
-                            <div key={adIdx} className="flex gap-2 animate-scale-up">
-                              <input className={`${inputStyles} flex-1`} value={ad.label} placeholder="Extra (e.g. Cheese)" onChange={e => {
-                                const n = [...prod.addons]; n[adIdx].label = e.target.value; updateProduct(prod.id, 'addons', n);
-                              }} />
-                              <input className={`${inputStyles} w-24`} type="number" step="0.01" value={ad.price} placeholder="Price" onChange={e => {
-                                const n = [...prod.addons]; n[adIdx].price = parseFloat(e.target.value) || 0; updateProduct(prod.id, 'addons', n);
-                              }} />
-                              <button onClick={() => {
-                                const n = prod.addons.filter((_, i) => i !== adIdx); updateProduct(prod.id, 'addons', n);
-                              }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"><TrashIcon /></button>
-                            </div>
-                          ))}
-                          {(!prod.addons || prod.addons.length === 0) && <p className="text-[9px] opacity-30 italic px-1">No extras defined.</p>}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3 py-2 pt-4 border-t border-white/5">
-                        <label className="flex items-center gap-2 text-[10px] font-black uppercase cursor-pointer opacity-70">
-                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${prod.isBestseller ? 'bg-blue-600 border-blue-600' : 'border-white/20'}`}>
-                            {prod.isBestseller && <CheckIcon className="w-3 h-3 text-white" />}
-                          </div>
-                          <input type="checkbox" className="hidden" checked={prod.isBestseller} onChange={e => updateProduct(prod.id, 'isBestseller', e.target.checked)} />
-                          Hot Pick / Best Seller
-                        </label>
-                      </div>
-
-                      <div className="flex justify-end pt-2">
-                        <button onClick={() => setLocalSettings({...localSettings, products: localSettings.products.filter(p => p.id !== prod.id)})} className="text-red-500 text-[10px] font-black uppercase border border-red-500/20 px-4 py-2 rounded-xl hover:bg-red-500/10 transition-colors">Delete Item</button>
+                         <label className={labelStyles}>Photo</label>
+                         <div className="flex gap-1">
+                            <button onClick={() => { setCurrentEditingProdId(prod.id); camInputRef.current?.click(); }} className={`${actionButtonStyles} flex-1`}><CameraIcon /></button>
+                            <button onClick={() => { setCurrentEditingProdId(prod.id); fileInputRef.current?.click(); }} className={`${actionButtonStyles} flex-1`}><UploadIcon /></button>
+                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <div><label className={labelStyles}>Name</label><input className={inputStyles} value={prod.name} onChange={e => updateProduct(prod.id, 'name', e.target.value)} /></div>
+                    <button onClick={() => setLocalSettings({...localSettings, products: localSettings.products.filter(p => p.id !== prod.id)})} className="w-full py-3 text-red-500 text-[10px] font-black uppercase border border-red-500/10 active:bg-red-500/10 transition-colors rounded-xl">Delete Item</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

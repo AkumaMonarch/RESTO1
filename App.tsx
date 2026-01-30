@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption } from './types';
+import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption, Category, Order } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { supabase } from './supabase';
 
@@ -11,7 +11,7 @@ import { CartView } from './CartView';
 import { CheckoutView } from './CheckoutView';
 import { UserDetailsView } from './UserDetailsView';
 import { FinalSummaryView } from './FinalSummaryView';
-import { OrderConfirmedView } from './OrderConfirmedView';
+import { OrderTrackerView } from './OrderTrackerView';
 import { AdminView } from './AdminView';
 
 export default function App() {
@@ -21,22 +21,92 @@ export default function App() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', phone: '', address: '', diningMode: 'EAT_IN' });
-  const [lastOrderNumber, setLastOrderNumber] = useState<number>(0);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  
-  const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); }, []);
+  const [liveOrders, setLiveOrders] = useState<Order[]>([]);
+
+  // Simple path-based routing
+  const [isDashboard, setIsDashboard] = useState(window.location.pathname.endsWith('/admin'));
+
+  const showToast = useCallback((msg: string) => { 
+    setToast(msg); 
+    setTimeout(() => setToast(null), 3000); 
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await supabase.from('kiosk_settings').select('config').eq('id', 1).single();
-      if (data?.config) setSettings(data.config);
-    } catch (err) { console.error("Load failed", err); }
-    finally { setLoading(false); }
+      const [configRes, catRes, prodRes] = await Promise.all([
+        supabase.from('kiosk_config').select('*').eq('id', 1).maybeSingle(),
+        supabase.from('kiosk_categories').select('*'),
+        supabase.from('kiosk_products').select('*')
+      ]);
+
+      if (configRes.data && catRes.data && prodRes.data) {
+        setSettings({
+          brandName: configRes.data.brand_name || DEFAULT_SETTINGS.brandName,
+          primaryColor: configRes.data.primary_color || DEFAULT_SETTINGS.primaryColor,
+          themeMode: configRes.data.theme_mode as 'light' | 'dark' || DEFAULT_SETTINGS.themeMode,
+          currency: configRes.data.currency || DEFAULT_SETTINGS.currency,
+          workingHours: configRes.data.working_hours || DEFAULT_SETTINGS.workingHours,
+          forceHolidays: configRes.data.force_holidays || [],
+          notificationWebhookUrl: configRes.data.notification_webhook_url || '',
+          categories: catRes.data.map(c => ({ id: c.id, label: c.label, icon: c.icon, backgroundImage: c.background_image })),
+          products: prodRes.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            price: parseFloat(p.price),
+            image: p.image,
+            category: p.category_id,
+            description: p.description,
+            isBestseller: p.is_bestseller,
+            sizes: p.sizes || [],
+            addons: p.addons || []
+          }))
+        });
+      }
+
+      const { data: ordersData } = await supabase.from('kiosk_orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (ordersData) setLiveOrders(ordersData);
+
+    } catch (err) { 
+      console.error("Critical Load failed:", err); 
+    } finally { 
+      setLoading(false); 
+    }
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => { 
+    fetchSettings(); 
+
+    const channel = supabase
+      .channel('kiosk_orders_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kiosk_orders' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setLiveOrders(prev => [payload.new as Order, ...prev]);
+        } else if (payload.eventType === 'UPDATE') {
+          setLiveOrders(prev => prev.map(o => o.id === payload.new.id ? payload.new as Order : o));
+        } else if (payload.eventType === 'DELETE') {
+          setLiveOrders(prev => prev.filter(o => o.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    // Listen for URL changes (popstate)
+    const handlePopState = () => {
+      setIsDashboard(window.location.pathname.endsWith('/admin'));
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => { 
+      supabase.removeChannel(channel); 
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [fetchSettings]);
 
   const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price) * item.quantity, 0) * 100) / 100, [cart]);
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
@@ -56,14 +126,10 @@ export default function App() {
       if (id === 'ALL') return [];
       const newState = [...prev];
       if (index !== undefined && index >= 0 && index < newState.length) {
-        if (delta === -9999) { // Flag for removal
-          newState.splice(index, 1);
-          return newState;
-        }
+        if (delta === -9999) { newState.splice(index, 1); return newState; }
         newState[index].quantity = Math.max(0, newState[index].quantity + delta);
         return newState.filter(item => item.quantity > 0);
       }
-      // Fallback to ID-based matching if index not provided
       return prev.map(item => item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item).filter(item => item.quantity > 0);
     }); 
   }, []);
@@ -72,28 +138,145 @@ export default function App() {
     setIsSubmittingOrder(true);
     const orderNumber = Math.floor(Math.random() * 900) + 100;
     try {
-      await supabase.from('kiosk_orders').insert([{ order_number: orderNumber, customer_details: userDetails, cart_items: cart, total_price: cartTotal }]);
-      setLastOrderNumber(orderNumber);
+      const { data, error } = await supabase.from('kiosk_orders').insert([{ 
+        order_number: orderNumber, 
+        customer_details: userDetails, 
+        cart_items: cart, 
+        total_price: cartTotal,
+        status: 'pending'
+      }]).select('id').single();
+      
+      if (error) throw error;
+      if (data) {
+        setCurrentOrderId(data.id);
+        
+        // --- Make.com Webhook Integration ---
+        // We include specific instructions for the Telegram automation
+        if (settings.notificationWebhookUrl) {
+          const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
+          const payload = {
+            order_id: data.id,
+            order_number: orderNumber,
+            customer_name: userDetails.name,
+            customer_phone: userDetails.phone,
+            total: `${settings.currency} ${cartTotal.toFixed(2)}`,
+            mode: userDetails.diningMode,
+            address: userDetails.address || 'N/A',
+            items_summary: summaryLines.join('\n'),
+            // These direct action flags allow Make.com to build a Telegram keyboard
+            telegram_actions: [
+              { label: "✅ Mark Ready", status: "ready" },
+              { label: "👨‍🍳 Preparing", status: "preparing" },
+              { label: "🚚 Out for Delivery", status: "out_for_delivery" },
+              { label: "🏁 Complete", status: "completed" }
+            ]
+          };
+
+          fetch(settings.notificationWebhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(e => console.error("Automation error:", e));
+        }
+      }
+
       setView(AppView.ORDER_CONFIRMED);
-    } catch (err) { console.error(err); setLastOrderNumber(orderNumber); setView(AppView.ORDER_CONFIRMED); }
-    finally { setIsSubmittingOrder(false); }
+    } catch (err: any) { 
+      console.error("Order failed:", err);
+      showToast("Order save error.");
+      setView(AppView.ORDER_CONFIRMED); 
+    } finally { 
+      setIsSubmittingOrder(false); 
+    }
   };
+
+  const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
+    setIsSubmittingOrder(true);
+    try {
+      const { error: configError } = await supabase.from('kiosk_config').upsert({
+        id: 1,
+        brand_name: newSettings.brandName,
+        primary_color: newSettings.primaryColor,
+        theme_mode: newSettings.themeMode,
+        currency: newSettings.currency,
+        working_hours: newSettings.workingHours,
+        force_holidays: newSettings.forceHolidays,
+        notification_webhook_url: newSettings.notificationWebhookUrl
+      });
+
+      if (configError) throw configError;
+
+      // Sync categories and products
+      await supabase.from('kiosk_products').delete().neq('id', '_root_');
+      await supabase.from('kiosk_categories').delete().neq('id', '_root_');
+
+      await supabase.from('kiosk_categories').insert(newSettings.categories.map(c => ({
+        id: c.id,
+        label: c.label,
+        icon: c.icon,
+        background_image: c.backgroundImage
+      })));
+
+      await supabase.from('kiosk_products').insert(newSettings.products.map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        image: p.image,
+        category_id: p.category,
+        description: p.description,
+        is_bestseller: p.isBestseller,
+        sizes: p.sizes,
+        addons: p.addons
+      })));
+
+      setSettings(newSettings);
+      showToast("Sync Successful!");
+    } catch (err) {
+      console.error("Save failed:", err);
+      showToast("Sync failed.");
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  }, [showToast]);
+
+  const currentOrder = useMemo(() => 
+    liveOrders.find(o => o.id === currentOrderId), 
+  [liveOrders, currentOrderId]);
 
   if (loading) return <div className="h-full w-full flex items-center justify-center bg-[#0F172A]"><div className="w-10 h-10 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin"></div></div>;
 
+  // Render Admin View if path is /admin
+  if (isDashboard) {
+    return (
+      <div className={`max-w-4xl mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
+        {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
+        <AdminView 
+          settings={settings} 
+          orders={liveOrders} 
+          isLive={true} 
+          onBack={() => {
+            window.history.pushState({}, '', '/');
+            setIsDashboard(false);
+          }} 
+          onSave={handleSaveSettings} 
+        />
+      </div>
+    );
+  }
+
+  // Otherwise render Customer App
   return (
     <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
-      {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl">{toast}</div>}
+      {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
       
       {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.MENU)} />}
-      {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onAdmin={() => setView(AppView.ADMIN)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
+      {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
       {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />}
       {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.CHECKOUT)} />}
       {view === AppView.CHECKOUT && <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.USER_DETAILS); }} />}
       {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CHECKOUT)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
       {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />}
-      {view === AppView.ORDER_CONFIRMED && <OrderConfirmedView settings={settings} onRestart={() => { setCart([]); setView(AppView.LANDING); }} orderNumber={lastOrderNumber} />}
-      {view === AppView.ADMIN && <AdminView settings={settings} onBack={() => setView(AppView.MENU)} onSave={(s) => { setSettings(s); supabase.from('kiosk_settings').upsert({ id: 1, config: s }); showToast("Synced"); setView(AppView.MENU); }} />}
+      {view === AppView.ORDER_CONFIRMED && <OrderTrackerView settings={settings} currentOrder={currentOrder} onRestart={() => { setCart([]); setView(AppView.LANDING); }} />}
     </div>
   );
 }
