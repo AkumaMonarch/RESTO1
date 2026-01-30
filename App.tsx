@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption, Category, Order, DiningMode } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { supabase } from './supabase';
@@ -26,6 +26,8 @@ export default function App() {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
+  
+  const lastStatusRef = useRef<string | null>(null);
 
   const checkIsAdmin = () => {
     const path = window.location.pathname.toLowerCase();
@@ -112,6 +114,22 @@ export default function App() {
     };
   }, [fetchSettings]);
 
+  // Monitor status changes for the current tracking order
+  useEffect(() => {
+    if (!currentOrderId) return;
+    const order = liveOrders.find(o => o.id === currentOrderId);
+    if (order && lastStatusRef.current && order.status !== lastStatusRef.current) {
+      const statusMap: any = {
+        preparing: lang === 'EN' ? "Kitchen is preparing your meal! 👨‍🍳" : "रसोई आपका भोजन तैयार कर रही है! 👨‍🍳",
+        ready: lang === 'EN' ? "Your order is READY! ✨" : "आपका ऑर्डर तैयार है! ✨",
+        out_for_delivery: lang === 'EN' ? "Order is on the way! 🛵" : "ऑर्डर रास्ते में है! 🛵",
+        completed: lang === 'EN' ? "Thank you for visiting! ✨" : "पधारने के लिए धन्यवाद! ✨"
+      };
+      if (statusMap[order.status]) showToast(statusMap[order.status]);
+    }
+    if (order) lastStatusRef.current = order.status;
+  }, [liveOrders, currentOrderId, lang, showToast]);
+
   const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price) * item.quantity, 0) * 100) / 100, [cart]);
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
   
@@ -168,6 +186,7 @@ export default function App() {
       if (error) throw error;
       if (data) {
         setCurrentOrderId(data.id);
+        lastStatusRef.current = 'pending';
         
         if (settings.notificationWebhookUrl) {
           const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
