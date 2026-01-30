@@ -41,6 +41,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   
   const isDark = localSettings.themeMode === 'dark';
   const camInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +68,37 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       alert(`Error updating status: ${err.message}`);
     } finally {
       setUpdatingStatusId(null);
+    }
+  };
+
+  const sendTestWebhook = async () => {
+    if (!localSettings.notificationWebhookUrl) {
+      alert("Please enter a Webhook URL first!");
+      return;
+    }
+    setIsTestingWebhook(true);
+    try {
+      const payload = {
+        test: true,
+        order_number: 999,
+        customer_name: "Test Customer",
+        items_summary: "• 2x Burger\n• 1x Soda",
+        telegram_actions: [
+            { label: "✅ Mark Ready", status: "ready" },
+            { label: "🚚 Out for Delivery", status: "out_for_delivery" }
+        ]
+      };
+      const res = await fetch(localSettings.notificationWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) alert("Test Sent! Check your automation.");
+      else alert("Webhook returned an error.");
+    } catch (e) {
+      alert("Connection failed.");
+    } finally {
+      setIsTestingWebhook(false);
     }
   };
 
@@ -208,19 +241,49 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         {activeTab === 'General' && (
           <div className="space-y-6">
             <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Integrations</h3>
+              <div className="flex justify-between items-center px-1">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Integrations</h3>
+                <button onClick={() => setShowGuide(!showGuide)} className="text-[8px] font-black uppercase text-blue-500 border border-blue-500/30 px-3 py-1 rounded-lg">
+                   {showGuide ? 'Close Guide' : 'Setup Guide'}
+                </button>
+              </div>
+              
+              {showGuide && (
+                <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-3 animate-scale-up`}>
+                  <p className="font-black text-blue-500 uppercase tracking-widest">🚀 Make.com + Telegram Blueprint</p>
+                  <ol className="list-decimal list-inside space-y-2 font-bold opacity-80 leading-relaxed">
+                    <li>Create a scenario with a <span className="text-blue-500">Custom Webhook</span>.</li>
+                    <li>Add a <span className="text-blue-500">Telegram Bot: Send Message</span> module.</li>
+                    <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the message text.</li>
+                    <li>Use <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_actions</code> to create Inline Buttons.</li>
+                    <li>Set Callback Data for buttons as: <code className="bg-slate-800 px-1 rounded text-white text-[8px]">{"{{order_id}}|{{status}}"}</code>.</li>
+                  </ol>
+                  <div className="pt-2 border-t border-blue-500/10">
+                    <p className="text-[8px] opacity-40 font-black uppercase">Supabase Update API:</p>
+                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all">
+                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{"{{order_id}}"}
+                    </code>
+                  </div>
+                </div>
+              )}
+
               <div className={cardStyles}>
                 <div className="space-y-4">
                   <div>
                     <label className={labelStyles}>Make.com Webhook URL</label>
                     <p className="text-[8px] opacity-40 font-bold mb-2">Send orders to Telegram/WhatsApp via Make Automation.</p>
-                    <input 
-                      type="url"
-                      placeholder="https://hook.make.com/..."
-                      className={inputStyles} 
-                      value={localSettings.notificationWebhookUrl || ''} 
-                      onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
-                    />
+                    <div className="flex gap-2">
+                       <input 
+                        type="url"
+                        placeholder="https://hook.make.com/..."
+                        className={inputStyles} 
+                        value={localSettings.notificationWebhookUrl || ''} 
+                        onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
+                       />
+                       <button onClick={sendTestWebhook} disabled={isTestingWebhook} className="bg-slate-900 text-white px-4 rounded-xl text-[8px] font-black uppercase whitespace-nowrap active:scale-95 transition-all disabled:opacity-30">
+                          {isTestingWebhook ? 'Sending...' : 'Test'}
+                       </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -268,7 +331,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               <button onClick={() => { const id = `CAT_${Date.now()}`; setLocalSettings(prev => ({ ...prev, categories: [...prev.categories, { id, label: 'New Folder', icon: '🍟' }] })); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Add New</button>
             </div>
             {localSettings.categories.map((cat, idx) => (
-              <div key={cat.id} className={cardStyles}>
+              <div key={cat.id} className={cat.id === 'root' ? 'hidden' : cardStyles}>
                 <div className="flex items-center gap-2">
                   <input className={`${inputStyles} w-14 text-center p-2`} value={cat.icon} onChange={e => { const n = [...localSettings.categories]; n[idx].icon = e.target.value; setLocalSettings({...localSettings, categories: n}); }} />
                   <input className={`${inputStyles} flex-1 p-2`} value={cat.label} onChange={e => { const n = [...localSettings.categories]; n[idx].label = e.target.value; setLocalSettings({...localSettings, categories: n}); }} />
