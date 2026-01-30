@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption, Category, Order } from './types';
+import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption, Category, Order, DiningMode } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { supabase } from './supabase';
 
@@ -35,7 +35,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => { 
     setToast(msg); 
-    setTimeout(() => setToast(null), 6000); 
+    setTimeout(() => setToast(null), 4000); 
   }, []);
 
   const fetchSettings = useCallback(async () => {
@@ -120,7 +120,7 @@ export default function App() {
       if (idx > -1) { const n = [...prev]; n[idx].quantity += quantity; return n; } 
       return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }]; 
     }); 
-    showToast(`Added ${product.name}`); 
+    showToast(`Added to Basket!`); 
     setView(AppView.MENU); 
   }, [showToast]);
   
@@ -193,7 +193,6 @@ export default function App() {
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     setIsSubmittingOrder(true);
     try {
-      // 1. Sync Configuration
       const configPayload: any = {
         id: 1,
         brand_name: newSettings.brandName,
@@ -201,28 +200,18 @@ export default function App() {
         theme_mode: newSettings.themeMode,
         currency: newSettings.currency,
         working_hours: newSettings.workingHours,
-        force_holidays: newSettings.forceHolidays
+        force_holidays: newSettings.forceHolidays,
+        notification_webhook_url: newSettings.notificationWebhookUrl || ''
       };
 
-      // Only include webhook if we aren't troubleshooting schema cache
-      if (newSettings.notificationWebhookUrl !== undefined) {
-        configPayload.notification_webhook_url = newSettings.notificationWebhookUrl || '';
-      }
-
       const { error: configError } = await supabase.from('kiosk_config').upsert(configPayload);
-      
-      if (configError) {
-        if (configError.message.includes('notification_webhook_url')) {
-          throw new Error("Missing Column: Please run 'ALTER TABLE kiosk_config ADD COLUMN notification_webhook_url TEXT;' in Supabase SQL Editor.");
-        }
-        throw new Error(`Config Error: ${configError.message}`);
-      }
+      if (configError) throw new Error(`Config Error: ${configError.message}`);
 
-      // 2. Clear & Sync Categories (Soft Sync)
-      const { error: delProdError } = await supabase.from('kiosk_products').delete().neq('id', '_root_');
-      const { error: delCatError } = await supabase.from('kiosk_categories').delete().neq('id', '_root_');
+      // Clear existing safely
+      await supabase.from('kiosk_products').delete().neq('id', '_root_');
+      await supabase.from('kiosk_categories').delete().neq('id', '_root_');
       
-      // 3. Re-insert Categories
+      // Re-insert Categories
       const { error: catError } = await supabase.from('kiosk_categories').upsert(newSettings.categories.map(c => ({
         id: c.id,
         label: c.label || 'New Category',
@@ -231,7 +220,7 @@ export default function App() {
       })));
       if (catError) throw new Error(`Category Error: ${catError.message}`);
 
-      // 4. Re-insert Products
+      // Re-insert Products
       const { error: prodError } = await supabase.from('kiosk_products').upsert(newSettings.products.map(p => ({
         id: p.id,
         name: p.name || 'Untitled Item',
@@ -246,10 +235,10 @@ export default function App() {
       if (prodError) throw new Error(`Product Error: ${prodError.message}`);
 
       setSettings(newSettings);
-      showToast("Settings Synced to Database!");
+      showToast("Everything Synced!");
     } catch (err: any) {
-      console.error("Sync failed detailed log:", err);
-      showToast(err.message || 'Sync Failed. Check Supabase Policies.');
+      console.error("Sync failed:", err);
+      showToast(err.message || 'Sync Failed.');
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -264,7 +253,7 @@ export default function App() {
   if (isDashboard) {
     return (
       <div className={`max-w-4xl mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
-        {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
+        {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
         <AdminView 
           settings={settings} 
           orders={liveOrders} 
@@ -283,12 +272,12 @@ export default function App() {
     <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
       {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
       
-      {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.MENU)} />}
+      {view === AppView.LANDING && <LandingView settings={settings} onStart={() => setView(AppView.CHECKOUT)} />}
+      {view === AppView.CHECKOUT && <CheckoutView settings={settings} onBack={() => setView(AppView.LANDING)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.MENU); }} />}
       {view === AppView.MENU && <MenuView settings={settings} cartTotal={cartTotal} cartCount={cartCount} onRestart={() => setView(AppView.LANDING)} onSelectProduct={(p) => { setSelectedProduct(p); setView(AppView.PRODUCT_DETAIL); }} onGoToCart={() => setView(AppView.CART)} />}
       {view === AppView.PRODUCT_DETAIL && selectedProduct && <ProductDetailView settings={settings} product={selectedProduct} onBack={() => setView(AppView.MENU)} onAddToCart={addToCart} />}
-      {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.CHECKOUT)} />}
-      {view === AppView.CHECKOUT && <CheckoutView settings={settings} onBack={() => setView(AppView.CART)} onSelectMode={(m) => { setUserDetails({...userDetails, diningMode: m}); setView(AppView.USER_DETAILS); }} />}
-      {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CHECKOUT)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
+      {view === AppView.CART && <CartView settings={settings} items={cart} total={cartTotal} onBack={() => setView(AppView.MENU)} onUpdateQuantity={updateQuantity} onCheckout={() => setView(AppView.USER_DETAILS)} />}
+      {view === AppView.USER_DETAILS && <UserDetailsView settings={settings} mode={userDetails.diningMode} onBack={() => setView(AppView.CART)} onNext={(d) => { setUserDetails(d); setView(AppView.FINAL_SUMMARY); }} initialDetails={userDetails} />}
       {view === AppView.FINAL_SUMMARY && <FinalSummaryView settings={settings} cart={cart} details={userDetails} total={cartTotal} onBack={() => setView(AppView.USER_DETAILS)} onConfirm={handleOrderConfirmed} isSubmitting={isSubmittingOrder} />}
       {view === AppView.ORDER_CONFIRMED && <OrderTrackerView settings={settings} currentOrder={currentOrder} onRestart={() => { setCart([]); setView(AppView.LANDING); }} />}
     </div>

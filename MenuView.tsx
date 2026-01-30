@@ -48,13 +48,6 @@ export const MenuView: React.FC<{
         </div>
       </header>
 
-      {isHoliday && (
-        <div className="bg-amber-100 text-amber-900 px-4 py-2 text-[10px] font-bold border-b border-amber-200 flex items-center justify-center gap-2 animate-pulse">
-          <span className="text-sm">⚠️</span>
-          <span className="uppercase tracking-tight text-center">Store Closed Today.</span>
-        </div>
-      )}
-
       <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
         <div className="scroll-shimmer-h"></div>
         <div className="mask-edges">
@@ -73,6 +66,19 @@ export const MenuView: React.FC<{
 
       <main {...mainScrollProps} className="flex-1 overflow-y-auto p-3 no-scrollbar pb-32 smooth-scroll relative">
         <div className="scroll-shimmer-v"></div>
+        
+        {/* Promotion Banner */}
+        {activeCategory === 'RECOMMENDED' && !searchQuery && (
+          <div className="mb-6 relative rounded-[2.5rem] overflow-hidden aspect-[16/9] shadow-2xl group animate-scale-up">
+            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="Promo" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+               <span className="text-white text-[9px] font-black uppercase tracking-widest mb-1 opacity-60">Chef's Special</span>
+               <h4 className="text-white text-3xl font-black font-oswald leading-none tracking-tight">THE ULTIMATE BOX</h4>
+               <p className="text-white/60 text-[10px] font-bold mt-2">Limited time only. Starting from {settings.currency}45.00</p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4">
           {filteredProducts.map(p => (
             <div key={p.id} onClick={() => onSelectProduct(p)} 
