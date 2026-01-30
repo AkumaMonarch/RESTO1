@@ -210,10 +210,19 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
                     <input className={`${inputStyles} flex-1 p-2`} value={cat.label} onChange={e => {
                       const n = [...localSettings.categories]; n[idx].label = e.target.value; setLocalSettings({...localSettings, categories: n});
                     }} />
-                    <button onClick={() => setLocalSettings({...localSettings, categories: localSettings.categories.filter(c => c.id !== cat.id)})} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
-                      <TrashIcon />
-                    </button>
+                    {cat.id !== 'RECOMMENDED' ? (
+                      <button onClick={() => setLocalSettings({...localSettings, categories: localSettings.categories.filter(c => c.id !== cat.id)})} className="p-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
+                        <TrashIcon />
+                      </button>
+                    ) : (
+                      <div className="p-3 opacity-10 cursor-not-allowed">
+                        <TrashIcon />
+                      </div>
+                    )}
                   </div>
+                  {cat.id === 'RECOMMENDED' && (
+                    <p className="text-[8px] font-black uppercase tracking-widest text-blue-500 mt-2 px-1 opacity-60">System Category • Cannot be deleted</p>
+                  )}
                 </div>
               ))}
             </div>
