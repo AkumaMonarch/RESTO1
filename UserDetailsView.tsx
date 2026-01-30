@@ -5,7 +5,7 @@ import { BackIcon } from './Icons';
 
 export const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode; onBack: () => void; onNext: (details: UserDetails) => void; initialDetails: UserDetails; }> = ({ settings, mode, onBack, onNext, initialDetails }) => {
   const [details, setDetails] = useState<UserDetails>(initialDetails);
-  const isDark = true;
+  const isDark = settings.themeMode === 'dark';
   const inputClass = `w-full p-5 rounded-2xl border-2 font-bold transition-all outline-none text-sm ${isDark ? 'bg-slate-800 border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-600'}`;
   const isValid = details.name.trim().length > 0 && details.phone.trim().length > 0;
 
@@ -33,7 +33,7 @@ export const UserDetailsView: React.FC<{ settings: AppSettings; mode: DiningMode
           </div>
         )}
       </form>
-      <div className="px-6 pb-10 pt-4 border-t border-white/5">
+      <div className={`px-6 pb-10 pt-4 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
         <button onClick={() => onNext(details)} className="w-full text-white py-5 rounded-3xl text-xl font-black uppercase shadow-2xl active:scale-[0.98] transition-all bg-blue-600 disabled:opacity-30" disabled={!isValid}>
           Check Out
         </button>

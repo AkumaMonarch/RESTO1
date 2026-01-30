@@ -17,7 +17,7 @@ export const MenuView: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
-  const isDark = true;
+  const isDark = settings.themeMode === 'dark';
 
   const isHoliday = useMemo(() => {
     const todayStr = new Date().toISOString().split('T')[0];

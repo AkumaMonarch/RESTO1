@@ -9,13 +9,15 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
   const [activeTab, setActiveTab] = useState<'General' | 'Categories' | 'Products'>('General');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
-  const isDark = true;
+  
+  // Use the local setting for immediate visual feedback in the admin panel
+  const isDark = localSettings.themeMode === 'dark';
 
   const camInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentEditingProdId, setCurrentEditingProdId] = useState<string | null>(null);
 
-  const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/5 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-slate-300'}`;
+  const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/5 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-600'}`;
   const cardStyles = `p-4 rounded-2xl border transition-all shadow-sm ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`;
   const labelStyles = "text-[9px] font-black uppercase tracking-widest opacity-40 px-1 mb-1.5 block";
   const actionButtonStyles = `flex items-center justify-center rounded-xl transition-all border p-3 shadow-sm active:scale-95 ${isDark ? 'bg-white/5 border-white/10 text-white/60 hover:text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-blue-600'}`;
@@ -60,7 +62,7 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
   };
 
   return (
-    <div className={`h-full flex flex-col animate-scale-up overflow-hidden ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
+    <div className={`h-full flex flex-col animate-scale-up overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={camInputRef} onChange={handleFileChange} />
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
 
@@ -90,6 +92,57 @@ export const AdminView: React.FC<{ settings: AppSettings; onSave: (s: AppSetting
                 <div className="space-y-4">
                   <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
                   <div><label className={labelStyles}>Currency Symbol</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Theme & Visuals</h3>
+              <div className={cardStyles}>
+                <div className="space-y-5">
+                  <div>
+                    <label className={labelStyles}>App Theme</label>
+                    <div className={`flex p-1 rounded-2xl gap-1 border-2 ${isDark ? 'bg-[#0F172A] border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                      <button 
+                        onClick={() => setLocalSettings({...localSettings, themeMode: 'light'})}
+                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'light' ? (isDark ? 'bg-white text-slate-900 shadow-xl' : 'bg-white shadow-md text-slate-900') : 'text-slate-400'}`}
+                      >
+                        <span className="text-xl">☀️</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Light</span>
+                      </button>
+                      <button 
+                        onClick={() => setLocalSettings({...localSettings, themeMode: 'dark'})}
+                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 transition-all ${localSettings.themeMode === 'dark' ? 'bg-slate-800 shadow-xl text-white border border-white/10' : 'text-slate-500'}`}
+                      >
+                        <span className="text-xl">🌙</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Dark</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className={labelStyles}>Primary Accent Color</label>
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      {THEME_PRESETS.map(preset => (
+                        <button 
+                          key={preset.id} 
+                          onClick={() => setLocalSettings({...localSettings, primaryColor: preset.color})}
+                          className={`w-12 h-12 rounded-2xl border-4 transition-all active:scale-90 flex items-center justify-center ${localSettings.primaryColor === preset.color ? (isDark ? 'border-white' : 'border-slate-900') : 'border-transparent'}`}
+                          style={{ backgroundColor: preset.color }}
+                        >
+                          {localSettings.primaryColor === preset.color && <CheckIcon className="text-white w-5 h-5" />}
+                        </button>
+                      ))}
+                      <div className="flex-1 min-w-[120px]">
+                        <input 
+                          type="color" 
+                          className={`w-full h-12 rounded-2xl cursor-pointer border-2 ${isDark ? 'border-white/5 bg-[#0F172A]' : 'border-slate-100 bg-white'}`}
+                          value={localSettings.primaryColor} 
+                          onChange={e => setLocalSettings({...localSettings, primaryColor: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>

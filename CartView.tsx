@@ -11,7 +11,7 @@ export const CartView: React.FC<{
   onBack: () => void;
   total: number;
 }> = ({ settings, items, onUpdateQuantity, onCheckout, onBack, total }) => {
-  const isDark = true;
+  const isDark = settings.themeMode === 'dark';
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden bg-animated-vertical ${isDark ? 'bg-[#0F172A] from-[#0F172A] via-[#1E293B] to-[#0F172A]' : 'bg-[#F9FAFB] from-[#F9FAFB] via-[#F1F5F9] to-[#F9FAFB]'}`}>
       <header className={`flex-shrink-0 px-4 pb-4 pt-[calc(0.75rem+env(safe-area-inset-top))] flex items-center justify-between border-b sticky top-0 z-20 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
@@ -88,7 +88,7 @@ export const CartView: React.FC<{
       {items.length > 0 && (
         <div className={`flex-shrink-0 px-6 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-6 border-t rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.5)] space-y-6 z-30 ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-gray-100'}`}>
           <div className="flex justify-between items-center">
-            <span className="text-white font-black uppercase text-xl tracking-tighter opacity-80">TOTAL</span>
+            <span className={`font-black uppercase text-xl tracking-tighter opacity-80 ${isDark ? 'text-white' : 'text-slate-900'}`}>TOTAL</span>
             <span className="text-4xl font-black font-oswald text-[#E4002B]">
               {settings.currency}{total.toFixed(2)}
             </span>

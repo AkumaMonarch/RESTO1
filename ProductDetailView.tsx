@@ -12,7 +12,7 @@ export const ProductDetailView: React.FC<{
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<SizeOption>(product.sizes[0] || { label: 'Regular', price: 0 });
   const [selectedAddons, setSelectedAddons] = useState<AddonOption[]>([]);
-  const isDark = true;
+  const isDark = settings.themeMode === 'dark';
 
   const totalPrice = useMemo(() => {
     const addonsTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
