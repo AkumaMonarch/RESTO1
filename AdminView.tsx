@@ -83,10 +83,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         order_number: 999,
         customer_name: "Test Customer",
         items_summary: "• 2x Burger\n• 1x Soda",
-        telegram_actions: [
-            { label: "✅ Mark Ready", status: "ready" },
-            { label: "🚚 Out for Delivery", status: "out_for_delivery" }
-        ]
+        telegram_markup: JSON.stringify({
+          inline_keyboard: [[{ text: "Test Button", callback_data: "test|preparing" }]]
+        })
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
@@ -250,31 +249,38 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest">🚀 Make.com + Telegram Blueprint</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest">🚀 Make.com Button Click FIX</p>
                   
-                  <div className="space-y-3">
-                    <p className="font-black border-b border-blue-500/10 pb-1">1. FIXING SILENT BUTTONS (IMPORTANT)</p>
-                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold">
-                      <li>Delete any "List Updates" nodes from your scenarios.</li>
-                      <li>Use ONLY a <span className="text-blue-500">Telegram Bot: Watch Updates</span> node.</li>
-                      <li>In that node, delete the webhook and add a **New** one to reset Telegram.</li>
+                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. WHY BUTTONS "DO NOTHING"</p>
+                    <p className="font-bold opacity-80 leading-relaxed">
+                      Make.com nodes often filter out everything except "Messages". Clicking a button is a <b>"Callback Query"</b>.
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold mt-2">
+                      <li>Open <span className="text-blue-500">Watch Updates</span> node settings.</li>
+                      <li>Click <b>"Show advanced settings"</b>.</li>
+                      <li>In <b>"Allowed updates"</b>, make sure <span className="bg-blue-500 text-white px-1 rounded">Callback Query</span> is selected.</li>
+                      <li>Save and click <b>"Run Once"</b>.</li>
                     </ul>
                   </div>
 
                   <div className="space-y-3">
                     <p className="font-black border-b border-blue-500/10 pb-1">2. TELEGRAM MODULE SETTINGS</p>
                     <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
-                      <li>Add a <span className="text-blue-500">Telegram Bot: Send Message</span> module.</li>
-                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the message text.</li>
-                      <li>Set Callback Data for buttons as: <code className="bg-slate-800 px-1 rounded text-white text-[8px]">{"{{order_id}}|{{status}}"}</code>.</li>
+                      <li>Use <span className="text-blue-500">Telegram Bot: Send Message</span>.</li>
+                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to Text.</li>
+                      <li>Find the <b>"Reply Markup"</b> field. Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_markup</code> from our Webhook to it.</li>
                     </ol>
                   </div>
 
                   <div className="pt-2 border-t border-blue-500/10">
                     <p className="text-[8px] opacity-40 font-black uppercase">Supabase Update API (HTTP Module):</p>
-                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all">
-                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{"{{split(callback_query.data; \"|\")[1]}}"}
+                    {/* Fixed double curly braces misinterpretation by wrapping in string literals */}
+                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all leading-relaxed">
+                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{split(1.callback_query.data; "|")[1]}}'}
                     </code>
+                    {/* Fixed double curly braces misinterpretation by wrapping in string literals */}
+                    <p className="text-[7px] opacity-40 mt-1">Status mapping: <code className="text-blue-400">{'{{split(1.callback_query.data; "|")[2]}}'}</code></p>
                   </div>
                 </div>
               )}
