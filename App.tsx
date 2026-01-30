@@ -26,8 +26,13 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
 
-  // Simple path-based routing
-  const [isDashboard, setIsDashboard] = useState(window.location.pathname.endsWith('/admin'));
+  // Robust path checking for /admin
+  const checkIsAdmin = () => {
+    const path = window.location.pathname.toLowerCase();
+    return path === '/admin' || path === '/admin/' || path.endsWith('/admin') || path.endsWith('/admin/');
+  };
+
+  const [isDashboard, setIsDashboard] = useState(checkIsAdmin());
 
   const showToast = useCallback((msg: string) => { 
     setToast(msg); 
@@ -96,9 +101,8 @@ export default function App() {
       })
       .subscribe();
 
-    // Listen for URL changes (popstate)
     const handlePopState = () => {
-      setIsDashboard(window.location.pathname.endsWith('/admin'));
+      setIsDashboard(checkIsAdmin());
     };
     window.addEventListener('popstate', handlePopState);
 
@@ -150,8 +154,6 @@ export default function App() {
       if (data) {
         setCurrentOrderId(data.id);
         
-        // --- Make.com Webhook Integration ---
-        // We include specific instructions for the Telegram automation
         if (settings.notificationWebhookUrl) {
           const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
           const payload = {
@@ -163,7 +165,6 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            // These direct action flags allow Make.com to build a Telegram keyboard
             telegram_actions: [
               { label: "✅ Mark Ready", status: "ready" },
               { label: "👨‍🍳 Preparing", status: "preparing" },
@@ -206,7 +207,6 @@ export default function App() {
 
       if (configError) throw configError;
 
-      // Sync categories and products
       await supabase.from('kiosk_products').delete().neq('id', '_root_');
       await supabase.from('kiosk_categories').delete().neq('id', '_root_');
 
@@ -245,7 +245,6 @@ export default function App() {
 
   if (loading) return <div className="h-full w-full flex items-center justify-center bg-[#0F172A]"><div className="w-10 h-10 border-4 border-white/10 border-t-blue-500 rounded-full animate-spin"></div></div>;
 
-  // Render Admin View if path is /admin
   if (isDashboard) {
     return (
       <div className={`max-w-4xl mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
@@ -264,7 +263,6 @@ export default function App() {
     );
   }
 
-  // Otherwise render Customer App
   return (
     <div className={`max-w-md mx-auto h-full relative shadow-2xl overflow-hidden ${settings.themeMode === 'dark' ? 'bg-[#0F172A]' : 'bg-white'}`}>
       {toast && <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-2xl text-[8px] font-black uppercase tracking-widest z-[100] animate-scale-up shadow-xl border border-white/10">{toast}</div>}
