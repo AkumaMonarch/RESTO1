@@ -155,6 +155,21 @@ export default function App() {
         
         if (settings.notificationWebhookUrl) {
           const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
+          
+          // Generate exact Telegram JSON format
+          const telegramMarkup = {
+            inline_keyboard: [
+              [
+                { text: "👨‍🍳 Preparing", callback_data: `${data.id}|preparing` },
+                { text: "✅ Ready", callback_data: `${data.id}|ready` }
+              ],
+              [
+                { text: "🚚 Out for Delivery", callback_data: `${data.id}|out_for_delivery` },
+                { text: "🏁 Complete", callback_data: `${data.id}|completed` }
+              ]
+            ]
+          };
+
           const payload = {
             order_id: data.id,
             order_number: orderNumber,
@@ -164,12 +179,7 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            telegram_actions: [
-              { label: "✅ Mark Ready", status: "ready" },
-              { label: "👨‍🍳 Preparing", status: "preparing" },
-              { label: "🚚 Out for Delivery", status: "out_for_delivery" },
-              { label: "🏁 Complete", status: "completed" }
-            ]
+            telegram_markup: JSON.stringify(telegramMarkup) // Pass this directly to Make.com
           };
 
           fetch(settings.notificationWebhookUrl, {
