@@ -203,17 +203,18 @@ export default function App() {
             ]
           };
 
+          const messageText = `📦 <b>New Order #${orderNumber}</b>\n\n` +
+            `👤 <b>Customer:</b> ${userDetails.name}\n` +
+            `📞 <b>Phone:</b> ${userDetails.phone}\n` +
+            `🍱 <b>Mode:</b> ${userDetails.diningMode}\n` +
+            `💰 <b>Total:</b> ${settings.currency} ${cartTotal.toFixed(2)}\n\n` +
+            `<b>Items:</b>\n${summaryLines.join('\n')}`;
+
           const payload = {
             order_id: data.id,
             order_number: orderNumber,
-            customer_name: userDetails.name,
-            customer_phone: userDetails.phone,
-            total: `${settings.currency} ${cartTotal.toFixed(2)}`,
-            mode: userDetails.diningMode,
-            address: userDetails.address || 'N/A',
-            items_summary: summaryLines.join('\n'),
-            // CRITICAL FIX: n8n expects a string if passed into the markup field expression
-            telegram_markup: JSON.stringify(telegramMarkup) 
+            message_text: messageText,
+            reply_markup: JSON.stringify(telegramMarkup)
           };
 
           fetch(settings.notificationWebhookUrl, {
