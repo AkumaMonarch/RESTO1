@@ -254,42 +254,32 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Final Fix</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 Final n8n Fix</p>
                   
-                  <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">Step 1: Fix "Bad Request" error</p>
+                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. Fix Reserved Character '#' Error</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      To fix the 400 error in your screenshot, follow these exact steps:
+                      MarkdownV2 is failing because of the "#" in your text.
                     </p>
-                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80 mt-2">
-                      <li>In n8n Telegram node, find the <b>"Reply Markup"</b> selector.</li>
-                      <li>Click the <b>3 dots (⋮)</b> or <b>Cog</b> next to "Reply Markup" and select <b>"Expression"</b>.</li>
-                      <li>This should make the dropdown disappear and turn into a text box.</li>
-                      <li>Paste this <b>exactly</b> (no JSON.parse needed now): <br/>
-                        <code className="bg-slate-900 px-2 py-1 rounded text-green-400 block mt-1 break-all">{'{{ $json.body.telegram_markup }}'}</code>
-                      </li>
-                      <li>The app now sends a proper object, so this will work perfectly.</li>
+                    <p className="font-bold mt-2 text-red-500 uppercase">The Fix:</p>
+                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
+                       <li>Find <b>"Parse Mode"</b> at the bottom of the Telegram node.</li>
+                       <li>Change it to <b>HTML</b>.</li>
+                       <li>HTML doesn't care about '#' or '.' symbols, so it will stop erroring.</li>
                     </ol>
                   </div>
 
-                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Update App Status</p>
+                  <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">2. Use Main Reply Markup (No Warning)</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      To make the buttons update the app dashboard:
+                      Don't put buttons in a "Row". Use the main field:
                     </p>
-                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed mt-2">
-                      <li>New Workflow: **Telegram Trigger** (Callback Query).</li>
-                      <li>Node: **HTTP Request**.</li>
-                      <li>Method: <b>PATCH</b></li>
-                      <li>URL: <br/>
-                         <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1 overflow-x-auto whitespace-nowrap">https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}</code>
-                      </li>
-                      <li>Headers:<br/>
-                        <span className="text-green-500">apikey</span>: (Your Anon Key)<br/>
-                        <span className="text-green-500">Content-Type</span>: application/json
-                      </li>
-                      <li>Body (JSON): <br/>
-                         <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1">{'{"status": "{{$json.callback_query.data.split("|")[1]}}"}'}</code>
+                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
+                      <li>Find the <b>"Reply Markup"</b> selector (where you see "Inline Keyboard").</li>
+                      <li>Click the <b>Cog icon (⋮)</b> on that exact field.</li>
+                      <li>Select <b>"Expression"</b>. The dropdown turns into a text box.</li>
+                      <li>Paste this: <br/>
+                        <code className="bg-slate-900 px-2 py-1 rounded text-green-400 block mt-1 break-all">{'{{ $json.body.telegram_markup }}'}</code>
                       </li>
                     </ol>
                   </div>
