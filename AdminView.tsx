@@ -253,25 +253,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Setup (Final Fix)</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Field Mapping (MANDATORY)</p>
                   
                   <div className="space-y-3 bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
-                    <p className="font-black text-blue-600 border-b border-blue-500/10 pb-1 uppercase">1. THE TEXT BOX</p>
-                    <p className="font-bold opacity-80 leading-relaxed mb-1">Paste this in the main <b>Text</b> box:</p>
+                    <p className="font-black text-blue-600 border-b border-blue-500/10 pb-1 uppercase text-center">TEXT FIELD</p>
+                    <p className="font-bold opacity-80 leading-relaxed mb-1">Paste this in the <b>Text</b> field of your Telegram node:</p>
                     <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.message_text }}"}</code>
                   </div>
 
                   <div className="space-y-3 bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
-                    <p className="font-black text-amber-600 border-b border-amber-500/10 pb-1 uppercase">2. THE BUTTONS</p>
-                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
-                       <li>Switch <b>Reply Markup</b> to <b>Expression</b>.</li>
-                       <li>Paste this code: <code className="bg-slate-900 px-2 py-1 rounded text-green-400">{"{{ $json.body.reply_markup }}"}</code></li>
-                    </ol>
+                    <p className="font-black text-amber-600 border-b border-amber-500/10 pb-1 uppercase text-center">REPLY MARKUP</p>
+                    <p className="font-bold opacity-80 mb-2">1. Click the <b>3 dots (⋮)</b> next to Reply Markup dropdown.</p>
+                    <p className="font-bold opacity-80 mb-2">2. Select <b>Expression</b>.</p>
+                    <p className="font-bold opacity-80 mb-2">3. Paste this exact code:</p>
+                    <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.reply_markup }}"}</code>
                   </div>
 
                   <div className="space-y-3 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">3. SETTINGS</p>
-                    <p className="font-bold opacity-80">Set <b>Parse Mode</b> to <b>HTML</b>. (The bold text and items will now appear correctly!)</p>
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase text-center">IMPORTANT SETTING</p>
+                    <p className="font-bold opacity-80">Make sure <b>Parse Mode</b> is set to <b>HTML</b>. This allows the bold order numbers to work!</p>
                   </div>
                 </div>
               )}
@@ -280,7 +280,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className="space-y-4">
                   <div>
                     <label className={labelStyles}>n8n Webhook URL</label>
-                    <p className="text-[8px] opacity-40 font-bold mb-2">Target for order notifications.</p>
+                    <p className="text-[8px] opacity-40 font-bold mb-2">Paste your n8n Production Webhook URL here.</p>
                     <div className="flex gap-2">
                        <input 
                         type="url"
@@ -297,8 +297,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 </div>
               </div>
             </section>
-            
-            {/* Rest of Identity and Style sections */}
+
             <section className="space-y-4">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Identity</h3>
               <div className={cardStyles}>
@@ -311,7 +310,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           </div>
         )}
         
-        {/* Categories and Products tabs omitted for brevity, assuming they remain unchanged */}
         {activeTab === 'Categories' && (
           <div className="space-y-3">
              <div className="flex justify-between items-center px-1 mb-2">
