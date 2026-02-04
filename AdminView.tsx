@@ -92,7 +92,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
     setIsTestingWebhook(true);
     const now = new Date();
     try {
-      // FULL PAYLOAD: Now includes reply_markup to prevent n8n 'undefined' errors
       const payload = {
         test: true,
         order_number: 999,
@@ -118,7 +117,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           address: "Test Address 123", 
           diningMode: "EAT_IN",
           platform: 'web_browser',
-          telegram_id: "882295616" // Default mock ID
+          telegram_id: "882295616"
         }
       };
       
@@ -129,10 +128,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       });
       
       if (res.ok) {
-        alert("Test Sent! n8n received the full payload including reply_markup.");
+        alert("Test Sent! n8n received the full payload.");
       } else {
         const errorText = await res.text();
-        alert(`n8n Error (${res.status}): ${errorText || 'Check node settings.'}`);
+        alert(`n8n Error (${res.status}): ${errorText}`);
       }
     } catch (e: any) {
       alert(`Connection failed: ${e.message}`);
@@ -180,79 +179,49 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
     }
   };
 
-  const safeSupabaseSql = `
--- SAFE SQL: Can be run even if tables already exist
--- 1. Create Config Table
-CREATE TABLE IF NOT EXISTS kiosk_config (
-  id bigint PRIMARY KEY,
-  brand_name text,
-  primary_color text,
-  theme_mode text,
-  currency text,
-  working_hours jsonb,
-  force_holidays text[],
-  notification_webhook_url text
-);
+  const migrationSql = `
+-- 🛠️ FIX EXISTING TABLES (SCHEMA MIGRATION)
+-- Use this if you get "Column Not Found" errors!
 
--- 2. Create Categories Table
-CREATE TABLE IF NOT EXISTS kiosk_categories (
-  id text PRIMARY KEY,
-  label text,
-  icon text,
-  background_image text
-);
+-- 1. Fix Config Table (Add Webhook URL column)
+ALTER TABLE kiosk_config 
+ADD COLUMN IF NOT EXISTS notification_webhook_url text;
 
--- 3. Create Products Table
-CREATE TABLE IF NOT EXISTS kiosk_products (
-  id text PRIMARY KEY,
-  name text,
-  price numeric,
-  image text,
-  category_id text REFERENCES kiosk_categories(id),
-  description text,
-  is_bestseller boolean DEFAULT false,
-  is_available boolean DEFAULT true,
-  sizes jsonb DEFAULT '[]',
-  addons jsonb DEFAULT '[]'
-);
+-- 2. Fix Products Table (Add Availability and Bestseller columns)
+ALTER TABLE kiosk_products 
+ADD COLUMN IF NOT EXISTS is_available boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS is_bestseller boolean DEFAULT false;
 
--- 4. Create Orders Table
-CREATE TABLE IF NOT EXISTS kiosk_orders (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  order_number int,
-  customer_details jsonb,
-  cart_items jsonb,
-  total_price numeric,
-  status text DEFAULT 'pending',
-  created_at timestamp with time zone DEFAULT now()
-);
+-- 3. Fix Categories Table (Add Background column)
+ALTER TABLE kiosk_categories
+ADD COLUMN IF NOT EXISTS background_image text;
 
--- 5. Insert or Update initial config
+-- 4. Ensure Config Row 1 exists
 INSERT INTO kiosk_config (id, brand_name, primary_color, theme_mode, currency)
 VALUES (1, 'LittleIndia', '#E4002B', 'light', 'Rs')
 ON CONFLICT (id) DO NOTHING;
+
+-- 5. Refresh PostgREST cache (optional but helpful)
+NOTIFY pgrst, 'reload schema';
   `.trim();
 
   const seedSql = `
--- RUN THIS TO SEE PRODUCTS IF YOUR DB IS EMPTY
--- 1. Insert Categories
-INSERT INTO kiosk_categories (id, label, icon, background_image)
+-- 🚀 POPULATE MENU (SEED DATA)
+-- Only run if your menu is currently empty!
+
+INSERT INTO kiosk_categories (id, label, icon)
 VALUES 
-  ('RECOMMENDED', 'RECOMMENDS', '🔥', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80'),
-  ('BURGERS', 'BURGERS', '🍔', 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80'),
-  ('BUCKETS', 'BUCKETS', '🍗', 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80'),
-  ('MEALS', 'BOX MEALS', '🍱', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'),
-  ('SIDES', 'SIDES', '🍟', NULL),
-  ('DRINKS', 'DRINKS', '🥤', NULL),
-  ('DESSERTS', 'DESSERTS', '🍦', NULL)
+  ('RECOMMENDED', 'RECOMMENDS', '🔥'),
+  ('BURGERS', 'BURGERS', '🍔'),
+  ('BUCKETS', 'BUCKETS', '🍗'),
+  ('MEALS', 'BOX MEALS', '🍱')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Insert Products
-INSERT INTO kiosk_products (id, name, price, image, category_id, description, is_bestseller, sizes, addons)
+INSERT INTO kiosk_products (id, name, price, image, category_id, description, is_bestseller, is_available)
 VALUES 
-  ('b1', 'Kentucky Gold Grander', 33.95, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Bacon, onion rings, cheddar cheese and BBQ sauce with crispy chicken.', true, '[{"label": "Small", "price": 0}, {"label": "Medium", "price": 5}, {"label": "Large", "price": 10}]', '[{"label": "Double Cheese", "price": 1.5}, {"label": "Extra Bacon", "price": 2.0}]'),
-  ('b2', 'Double Grander', 29.95, 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Double chicken fillet, cheese, and fresh lettuce.', false, '[{"label": "Small", "price": 0}, {"label": "Medium", "price": 5}, {"label": "Large", "price": 10}]', '[]'),
-  ('k1', '15 Hot Wings Bucket', 45.00, 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80', 'BUCKETS', 'The ultimate bucket for spice lovers.', true, '[{"label": "Regular", "price": 0}, {"label": "Giant", "price": 15}]', '[]')
+  ('b1', 'Kentucky Gold Grander', 33.95, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Bacon, onion rings, cheddar cheese and BBQ sauce.', true, true),
+  ('b2', 'Double Grander', 29.95, 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Double chicken fillet, cheese, and fresh lettuce.', false, true),
+  ('k1', '15 Hot Wings Bucket', 45.00, 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80', 'BUCKETS', 'The ultimate bucket for spice lovers.', true, true)
 ON CONFLICT (id) DO NOTHING;
   `.trim();
 
@@ -331,24 +300,25 @@ ON CONFLICT (id) DO NOTHING;
               
               {showGuide && (
                 <div className="space-y-4 animate-scale-up">
-                  <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 SEED DATA: Populates your menu</p>
-                    <p className="opacity-80">If your menu is empty, copy this and run it in the Supabase SQL Editor to add the default items.</p>
+                  {/* FIX SCHEMA SECTION */}
+                  <div className={`${cardStyles} bg-red-500/5 border-red-500/20 text-[10px] space-y-4`}>
+                    <p className="font-black text-red-500 uppercase tracking-widest underline">🛠️ FIX EXISTING TABLES (SCHEMA MIGRATION)</p>
+                    <p className="opacity-80">If you get <b>"Column Not Found"</b> errors when saving, run this script in the Supabase SQL Editor to add missing columns.</p>
                     <textarea 
                       readOnly 
-                      className="w-full h-32 bg-slate-900 text-blue-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
-                      value={seedSql}
+                      className="w-full h-32 bg-slate-900 text-red-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
+                      value={migrationSql}
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                     />
                   </div>
 
-                  <div className={`${cardStyles} bg-emerald-500/5 border-emerald-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Fix "Already Exists" Error</p>
-                    <p className="opacity-80">If you get an error saying something "already exists", use this <b>Safe Script</b> below.</p>
+                  <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
+                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 SEED DATA: Populates your menu</p>
+                    <p className="opacity-80">If your menu is empty, run this in the Supabase SQL Editor.</p>
                     <textarea 
                       readOnly 
-                      className="w-full h-24 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
-                      value={safeSupabaseSql}
+                      className="w-full h-24 bg-slate-900 text-blue-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
+                      value={seedSql}
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                     />
                   </div>
@@ -392,7 +362,6 @@ ON CONFLICT (id) DO NOTHING;
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Live Kitchen Feed</h3>
-              <p className="text-[7px] opacity-40 font-black uppercase tracking-widest">Automatic Refresh</p>
             </div>
             
             {orders.length === 0 ? (

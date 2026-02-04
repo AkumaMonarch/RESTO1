@@ -63,7 +63,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => { 
     setToast(msg); 
-    setTimeout(() => setToast(null), 4000); 
+    setTimeout(() => setToast(null), 6000); 
   }, []);
 
   const fetchSettings = useCallback(async () => {
@@ -294,6 +294,7 @@ export default function App() {
   const handleSaveSettings = useCallback(async (newSettings: AppSettings) => {
     setIsSubmittingOrder(true);
     try {
+      // 1. Save Basic Config
       const configPayload: any = {
         id: 1,
         brand_name: newSettings.brandName,
@@ -306,11 +307,13 @@ export default function App() {
       };
 
       const { error: configError } = await supabase.from('kiosk_config').upsert(configPayload);
-      if (configError) throw new Error(`Config Error: ${configError.message}`);
+      if (configError) {
+        if (configError.message.includes('column')) throw new Error("CONFIG ERROR: Run the 'Fix Schema' script in Admin Guides to add the Webhook column.");
+        throw new Error(`Config Error: ${configError.message}`);
+      }
 
-      await supabase.from('kiosk_products').delete().neq('id', '_root_');
+      // 2. Clean and Save Categories
       await supabase.from('kiosk_categories').delete().neq('id', '_root_');
-      
       const { error: catError } = await supabase.from('kiosk_categories').upsert(newSettings.categories.map(c => ({
         id: c.id,
         label: c.label || 'New Category',
@@ -319,6 +322,8 @@ export default function App() {
       })));
       if (catError) throw new Error(`Category Error: ${catError.message}`);
 
+      // 3. Clean and Save Products
+      await supabase.from('kiosk_products').delete().neq('id', '_root_');
       const { error: prodError } = await supabase.from('kiosk_products').upsert(newSettings.products.map(p => ({
         id: p.id,
         name: p.name || 'Untitled Item',
@@ -331,7 +336,11 @@ export default function App() {
         sizes: p.sizes || [],
         addons: p.addons || []
       })));
-      if (prodError) throw new Error(`Product Error: ${prodError.message}`);
+      
+      if (prodError) {
+        if (prodError.message.includes('column')) throw new Error("PRODUCT ERROR: Run the 'Fix Schema' script in Admin Guides to add missing columns like 'is_available'.");
+        throw new Error(`Product Error: ${prodError.message}`);
+      }
 
       setSettings(newSettings);
       showToast("Everything Synced!");
