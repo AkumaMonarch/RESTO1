@@ -214,7 +214,7 @@ export default function App() {
             order_id: data.id,
             order_number: orderNumber,
             message_text: messageText,
-            reply_markup: JSON.stringify(telegramMarkup)
+            reply_markup: telegramMarkup // Sent as raw object now
           };
 
           fetch(settings.notificationWebhookUrl, {
