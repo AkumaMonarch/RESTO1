@@ -130,12 +130,12 @@ export default function App() {
     if (order) lastStatusRef.current = order.status;
   }, [liveOrders, currentOrderId, lang, showToast]);
 
-  const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price) * item.quantity, 0) * 100) / 100, [cart]);
+  const cartTotal = useMemo(() => Math.round(cart.reduce((acc, item) => acc + (item.price + item.selectedSize.price + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0)) * item.quantity, 0) * 100) / 100, [cart]);
   const cartCount = useMemo(() => cart.reduce((acc, item) => acc + item.quantity, 0), [cart]);
   
   const addToCart = useCallback((product: Product, quantity: number, size: SizeOption, addons: AddonOption[]) => { 
     setCart(prev => { 
-      const idx = prev.findIndex(i => i.id === product.id && i.selectedSize.label === size.label); 
+      const idx = prev.findIndex(i => i.id === product.id && i.selectedSize.label === size.label && JSON.stringify(i.selectedAddons) === JSON.stringify(addons)); 
       if (idx > -1) { const n = [...prev]; n[idx].quantity += quantity; return n; } 
       return [...prev, { ...product, quantity, selectedSize: size, selectedAddons: addons }]; 
     }); 
@@ -174,6 +174,10 @@ export default function App() {
   const handleOrderConfirmed = async () => {
     setIsSubmittingOrder(true);
     const orderNumber = Math.floor(Math.random() * 900) + 100;
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formattedTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+
     try {
       const { data, error } = await supabase.from('kiosk_orders').insert([{ 
         order_number: orderNumber, 
@@ -189,7 +193,12 @@ export default function App() {
         lastStatusRef.current = 'pending';
         
         if (settings.notificationWebhookUrl) {
-          const summaryLines = cart.map(i => `• ${i.quantity}x ${i.name} (${i.selectedSize.label})`);
+          const itemLines = cart.map(i => {
+            const addonText = i.selectedAddons.length > 0 
+              ? `\n   └ Extras: ${i.selectedAddons.map(a => a.label).join(', ')}` 
+              : '';
+            return `• ${i.quantity}x <b>${i.name}</b> (${i.selectedSize.label})${addonText}`;
+          });
           
           const telegramMarkup = {
             inline_keyboard: [
@@ -204,20 +213,23 @@ export default function App() {
             ]
           };
 
-          const messageText = `📦 <b>New Order #${orderNumber}</b>\n\n` +
+          const messageText = `📦 <b>NEW ORDER #${orderNumber}</b>\n` +
+            `📅 ${formattedDate} | 🕒 ${formattedTime}\n\n` +
             `👤 <b>Customer:</b> ${userDetails.name}\n` +
             `📞 <b>Phone:</b> ${userDetails.phone}\n` +
-            `🍱 <b>Mode:</b> ${userDetails.diningMode}\n` +
+            `🍱 <b>Mode:</b> ${userDetails.diningMode.replace('_', ' ')}\n` +
+            `${userDetails.address ? `📍 <b>Address:</b> ${userDetails.address}\n` : ''}` +
             `💰 <b>Total:</b> ${settings.currency} ${cartTotal.toFixed(2)}\n\n` +
-            `<b>Items:</b>\n${summaryLines.join('\n')}`;
+            `<b>ITEMS:</b>\n${itemLines.join('\n')}`;
 
           const payload = {
             order_id: data.id,
             order_number: orderNumber,
             message_text: messageText,
             reply_markup: telegramMarkup,
-            customer_details: userDetails, // Critical for n8n to route to phone number
-            cart_summary: summaryLines.join(', '),
+            customer_details: userDetails,
+            order_timestamp: { date: formattedDate, time: formattedTime },
+            cart_items: cart,
             total_price: cartTotal
           };
 
