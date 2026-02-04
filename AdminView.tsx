@@ -92,10 +92,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) alert("Test Sent to n8n! Check your execution log.");
-      else alert("n8n returned an error. Make sure the node is active.");
-    } catch (e) {
-      alert("Connection to n8n failed. Check URL or network.");
+      
+      if (res.ok) {
+        alert("Test Sent! n8n received the data successfully.");
+      } else {
+        const errorText = await res.text();
+        alert(`n8n Error (${res.status}): ${errorText || 'Check if the node is set to POST and active.'}`);
+      }
+    } catch (e: any) {
+      alert(`Connection failed: ${e.message}. This is usually a CORS issue or the URL is unreachable.`);
     } finally {
       setIsTestingWebhook(false);
     }
@@ -251,30 +256,34 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
                   <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Workflow Config</p>
                   
-                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                    <p className="font-black text-blue-500 border-b border-blue-500/10 pb-1 uppercase">1. Webhook Setup</p>
+                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">CRITICAL: HTTP METHOD</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Use a <b>Webhook Node</b> in n8n. Set Method to <b>POST</b> and Path to <b>kiosk</b>.
+                      Your Webhook node in n8n MUST be set to **POST**.
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold mt-2">
+                      <li>Open Webhook Node settings.</li>
+                      <li>Set <b>HTTP Method</b> to <code>POST</code>.</li>
+                      <li>Ensure <b>Authentication</b> is None (for testing).</li>
+                      <li>If using the <b>Test URL</b>, click <b>"Execute Workflow"</b> in n8n first.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">1. Webhook Setup</p>
+                    <p className="font-bold opacity-80 leading-relaxed">
+                      Path: <code>kiosk</code>
                     </p>
                     <div className="space-y-2 mt-2">
-                       <p className="text-[8px] font-black opacity-40 uppercase">Recommended URLs:</p>
+                       <p className="text-[8px] font-black opacity-40 uppercase">Production URL (Workflow must be Active):</p>
                        <code className="block p-2 bg-slate-900 rounded text-[7px] text-blue-400 break-all select-all">
                          https://one.kaizen.indevs.in/webhook/kiosk
                        </code>
-                       <p className="text-[7px] opacity-40 uppercase">Testing URL (Executes on "Listen"):</p>
+                       <p className="text-[7px] opacity-40 uppercase">Testing URL (Execute Workflow first):</p>
                        <code className="block p-2 bg-slate-900 rounded text-[7px] text-amber-400 break-all select-all">
                          https://one.kaizen.indevs.in/webhook-test/kiosk
                        </code>
                     </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="font-black border-b border-blue-500/10 pb-1">2. Telegram Integration</p>
-                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
-                      <li>Add a <b>Telegram Node</b> (Action: Send Message).</li>
-                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the text body.</li>
-                      <li>Enable <b>Reply Markup</b> and map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_markup</code> from the Webhook JSON.</li>
-                    </ol>
                   </div>
 
                   <div className="pt-2 border-t border-blue-500/10">
@@ -290,7 +299,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className="space-y-4">
                   <div>
                     <label className={labelStyles}>n8n Webhook URL</label>
-                    <p className="text-[8px] opacity-40 font-bold mb-2">Target URL for order notifications (Production or Test).</p>
+                    <p className="text-[8px] opacity-40 font-bold mb-2">Enter the n8n endpoint URL here.</p>
                     <div className="flex gap-2">
                        <input 
                         type="url"
