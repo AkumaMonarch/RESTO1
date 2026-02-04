@@ -83,9 +83,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         order_number: 999,
         customer_name: "Test Customer",
         items_summary: "• 2x Burger\n• 1x Soda",
-        telegram_markup: JSON.stringify({
+        telegram_markup: {
           inline_keyboard: [[{ text: "Test Button", callback_data: "test|preparing" }]]
-        })
+        }
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
@@ -254,46 +254,44 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Final Integration Guide</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Final Fix</p>
                   
                   <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">Step 1: Fix Telegram Buttons</p>
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">Step 1: Fix "Bad Request" error</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      To fix the "Object Not Supported" error from your screenshot:
+                      To fix the 400 error in your screenshot, follow these exact steps:
                     </p>
                     <ol className="list-decimal list-inside space-y-2 font-bold opacity-80 mt-2">
-                      <li>In n8n Telegram Node, look for the <b>"Reply Markup"</b> field.</li>
-                      <li>Turn ON the <b>Expression (cog)</b> icon on the <b>MAIN</b> Reply Markup field.</li>
-                      <li>Paste this exactly: <br/>
+                      <li>In n8n Telegram node, find the <b>"Reply Markup"</b> selector.</li>
+                      <li>Click the <b>3 dots (⋮)</b> or <b>Cog</b> next to "Reply Markup" and select <b>"Expression"</b>.</li>
+                      <li>This should make the dropdown disappear and turn into a text box.</li>
+                      <li>Paste this <b>exactly</b> (no JSON.parse needed now): <br/>
                         <code className="bg-slate-900 px-2 py-1 rounded text-green-400 block mt-1 break-all">{'{{ $json.body.telegram_markup }}'}</code>
                       </li>
-                      <li><b>Important:</b> This bypasses the Row/Button UI which causes the error.</li>
+                      <li>The app now sends a proper object, so this will work perfectly.</li>
                     </ol>
                   </div>
 
                   <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Handle Button Clicks</p>
+                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Update App Status</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Create a NEW workflow with a **Telegram Trigger** (Callback Query).
+                      To make the buttons update the app dashboard:
                     </p>
                     <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed mt-2">
-                      <li>Add an <b>HTTP Request</b> node.</li>
+                      <li>New Workflow: **Telegram Trigger** (Callback Query).</li>
+                      <li>Node: **HTTP Request**.</li>
                       <li>Method: <b>PATCH</b></li>
-                      <li>URL (Expression): <br/>
+                      <li>URL: <br/>
                          <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1 overflow-x-auto whitespace-nowrap">https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}</code>
+                      </li>
+                      <li>Headers:<br/>
+                        <span className="text-green-500">apikey</span>: (Your Anon Key)<br/>
+                        <span className="text-green-500">Content-Type</span>: application/json
                       </li>
                       <li>Body (JSON): <br/>
                          <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1">{'{"status": "{{$json.callback_query.data.split("|")[1]}}"}'}</code>
                       </li>
                     </ol>
-                  </div>
-
-                  <div className="pt-2 border-t border-blue-500/10">
-                    <p className="text-[8px] opacity-40 font-black uppercase">Required Headers for Supabase:</p>
-                    <div className="bg-slate-900 p-2 rounded mt-1 space-y-1">
-                      <p className="text-[7px] text-green-400">apikey: (Your Supabase Anon Key)</p>
-                      <p className="text-[7px] text-green-400">Content-Type: application/json</p>
-                    </div>
                   </div>
                 </div>
               )}

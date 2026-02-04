@@ -114,7 +114,6 @@ export default function App() {
     };
   }, [fetchSettings]);
 
-  // Monitor status changes for the current tracking order
   useEffect(() => {
     if (!currentOrderId) return;
     const order = liveOrders.find(o => o.id === currentOrderId);
@@ -213,7 +212,7 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            telegram_markup: JSON.stringify(telegramMarkup)
+            telegram_markup: telegramMarkup // Send as raw object for n8n
           };
 
           fetch(settings.notificationWebhookUrl, {
