@@ -92,22 +92,36 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
     setIsTestingWebhook(true);
     const now = new Date();
     try {
+      // FULL PAYLOAD: Now includes reply_markup to prevent n8n 'undefined' errors
       const payload = {
         test: true,
         order_number: 999,
         order_date: now.toLocaleDateString('en-GB'),
         order_time: now.toLocaleTimeString('en-GB'),
-        message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test\n💰 <b>Total:</b> Rs 0.00",
+        message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test User\n📞 <b>Phone:</b> 1234567890\n💰 <b>Total:</b> Rs 0.00",
         order_id: "test-id",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: "👨‍🍳 Preparing", callback_data: `test-id|preparing` },
+              { text: "✅ Ready", callback_data: `test-id|ready` }
+            ],
+            [
+              { text: "🚚 Out for Delivery", callback_data: `test-id|out_for_delivery` },
+              { text: "🏁 Complete", callback_data: `test-id|completed` }
+            ]
+          ]
+        },
         customer_details: { 
           name: "Test User", 
           phone: "1234567890", 
-          address: "Test St", 
+          address: "Test Address 123", 
           diningMode: "EAT_IN",
           platform: 'web_browser',
-          telegram_id: null
+          telegram_id: "882295616" // Default mock ID
         }
       };
+      
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,10 +129,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       });
       
       if (res.ok) {
-        alert("Test Sent! n8n received the data successfully.");
+        alert("Test Sent! n8n received the full payload including reply_markup.");
       } else {
         const errorText = await res.text();
-        alert(`n8n Error (${res.status}): ${errorText || 'Check if the node is set to POST and active.'}`);
+        alert(`n8n Error (${res.status}): ${errorText || 'Check node settings.'}`);
       }
     } catch (e: any) {
       alert(`Connection failed: ${e.message}`);
