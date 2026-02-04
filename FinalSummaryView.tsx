@@ -3,7 +3,6 @@ import React from 'react';
 import { AppSettings, CartItem, UserDetails } from './types';
 import { BackIcon } from './Icons';
 
-// Added lang and updated onConfirm to fix TypeScript error in App.tsx
 export const FinalSummaryView: React.FC<{ 
   settings: AppSettings; 
   lang: 'EN' | 'HI'; 
@@ -75,7 +74,7 @@ export const FinalSummaryView: React.FC<{
           </span>
         </div>
         <button onClick={onConfirm} disabled={isSubmitting} className="w-full text-white py-5 rounded-3xl text-xl font-black uppercase shadow-2xl transition-all active:scale-[0.98] bg-[#86BC25]">
-          {isSubmitting ? (lang === 'EN' ? 'Confirming...' : 'पुष्टि कर रहे हैं...') : (lang === 'EN' ? 'Place Order Now' : 'अभी ऑर्डर दें')}
+          {isSubmitting ? (lang === 'EN' ? 'Confirming...' : 'पुष्टि कर रहे हैं...') : (lang === 'EN' ? 'Confirm Order' : 'ऑर्डर की पुष्टि करें')}
         </button>
       </div>
     </div>

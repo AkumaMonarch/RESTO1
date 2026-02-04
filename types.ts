@@ -27,6 +27,7 @@ export interface Product {
   description: string;
   isBestseller?: boolean;
   isVegetarian?: boolean;
+  isAvailable?: boolean;
   sizes: SizeOption[];
   addons: AddonOption[];
 }

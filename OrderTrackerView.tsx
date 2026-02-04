@@ -55,6 +55,13 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, la
     ];
   }, [isDelivery, lang]);
 
+  const handleWhatsAppShare = () => {
+    if (!currentOrder) return;
+    const items = currentOrder.cart_items.map(i => `${i.quantity}x ${i.name}`).join('%0A');
+    const text = `*New Order from ${settings.brandName}*%0A%0A*Order #:* ${currentOrder.order_number}%0A*Mode:* ${currentOrder.customer_details.diningMode}%0A*Total:* ${settings.currency}${currentOrder.total_price.toFixed(2)}%0A%0A*Items:*%0A${items}`;
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
   const getStepIndex = (s: string) => {
     if (s === 'pending') return 0;
     if (s === 'preparing') return 1;
@@ -127,7 +134,15 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({ settings, la
         )}
       </div>
 
-      <div className="w-full pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div className="w-full pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-3">
+        {!isAllFinished && (
+          <button 
+            onClick={handleWhatsAppShare}
+            className="w-full py-4 rounded-[2rem] bg-[#25D366] text-white font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span>📱</span> {lang === 'EN' ? 'Share to WhatsApp' : 'व्हाट्सएप पर शेयर करें'}
+          </button>
+        )}
         <button 
           onClick={onRestart} 
           className={`w-full py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl active:scale-95 transition-all ${

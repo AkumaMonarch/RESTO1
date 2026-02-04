@@ -68,6 +68,7 @@ export default function App() {
             category: p.category_id,
             description: p.description,
             isBestseller: p.is_bestseller,
+            isAvailable: p.is_available !== false,
             sizes: p.sizes || [],
             addons: p.addons || []
           }))
@@ -214,7 +215,10 @@ export default function App() {
             order_id: data.id,
             order_number: orderNumber,
             message_text: messageText,
-            reply_markup: telegramMarkup // Sent as raw object now
+            reply_markup: telegramMarkup,
+            customer_details: userDetails, // Critical for n8n to route to phone number
+            cart_summary: summaryLines.join(', '),
+            total_price: cartTotal
           };
 
           fetch(settings.notificationWebhookUrl, {
@@ -271,6 +275,7 @@ export default function App() {
         category_id: p.category,
         description: p.description || '',
         is_bestseller: !!p.isBestseller,
+        is_available: p.isAvailable !== false,
         sizes: p.sizes || [],
         addons: p.addons || []
       })));

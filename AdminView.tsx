@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { AppSettings, Category, Product, Order, OrderStatus } from './types';
 import { BackIcon, TrashIcon, SearchIcon, CameraIcon, UploadIcon, ChevronDownIcon, CheckIcon } from './Icons';
 import { THEME_PRESETS } from './constants';
@@ -36,7 +36,7 @@ const compressImageToBlob = (base64: string, maxWidth = 1000, quality = 0.8): Pr
 
 export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, onSave, onBack }) => {
   const [localSettings, setLocalSettings] = useState<AppSettings>(settings);
-  const [activeTab, setActiveTab] = useState<'Orders' | 'Products' | 'Categories' | 'General'>('Orders');
+  const [activeTab, setActiveTab] = useState<'Orders' | 'Products' | 'Categories' | 'General' | 'Stats'>('Orders');
   const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
@@ -48,6 +48,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
   const camInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentEditingProdId, setCurrentEditingProdId] = useState<string | null>(null);
+
+  const stats = useMemo(() => {
+    const today = new Date().toDateString();
+    const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === today);
+    const totalRev = orders.reduce((s, o) => s + (o.status === 'completed' ? o.total_price : 0), 0);
+    const todayRev = todayOrders.reduce((s, o) => s + (o.status === 'completed' ? o.total_price : 0), 0);
+    return {
+      totalOrders: orders.length,
+      todayOrders: todayOrders.length,
+      totalRevenue: totalRev,
+      todayRevenue: todayRev
+    };
+  }, [orders]);
 
   const inputStyles = `w-full border-2 p-3 rounded-xl font-bold transition-all outline-none shadow-sm text-sm ${isDark ? 'bg-[#0F172A] border-white/5 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-600'}`;
   const cardStyles = `p-4 rounded-2xl border transition-all shadow-sm ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white border-slate-100'}`;
@@ -82,7 +95,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         test: true,
         order_number: 999,
         message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test\n💰 <b>Total:</b> Rs 0.00",
-        order_id: "test-id"
+        order_id: "test-id",
+        customer_details: { name: "Test User", phone: "1234567890", address: "Test St", diningMode: "EAT_IN" }
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
@@ -142,6 +156,57 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
     }
   };
 
+  const supabaseSql = `
+-- 1. Create Config Table
+create table kiosk_config (
+  id bigint primary key,
+  brand_name text,
+  primary_color text,
+  theme_mode text,
+  currency text,
+  working_hours jsonb,
+  force_holidays text[],
+  notification_webhook_url text
+);
+
+-- 2. Create Categories Table
+create table kiosk_categories (
+  id text primary key,
+  label text,
+  icon text,
+  background_image text
+);
+
+-- 3. Create Products Table
+create table kiosk_products (
+  id text primary key,
+  name text,
+  price numeric,
+  image text,
+  category_id text references kiosk_categories(id),
+  description text,
+  is_bestseller boolean default false,
+  is_available boolean default true,
+  sizes jsonb default '[]',
+  addons jsonb default '[]'
+);
+
+-- 4. Create Orders Table
+create table kiosk_orders (
+  id uuid default gen_random_uuid() primary key,
+  order_number int,
+  customer_details jsonb,
+  cart_items jsonb,
+  total_price numeric,
+  status text default 'pending',
+  created_at timestamp with time zone default now()
+);
+
+-- Insert initial config
+insert into kiosk_config (id, brand_name, primary_color, theme_mode, currency)
+values (1, 'LittleIndia', '#E4002B', 'light', 'Rs');
+  `.trim();
+
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={camInputRef} onChange={handleFileChange} />
@@ -158,7 +223,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
             </div>
           </div>
         </div>
-        {activeTab !== 'Orders' && (
+        {(activeTab !== 'Orders' && activeTab !== 'Stats') && (
           <button 
             onClick={handleSave} 
             disabled={isSaving || !!uploadingImage}
@@ -170,8 +235,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       </header>
 
       <div className={`flex-shrink-0 flex border-b overflow-x-auto no-scrollbar ${isDark ? 'bg-[#1E293B] border-white/5' : 'bg-white'}`}>
-        {(['Orders', 'Products', 'Categories', 'General'] as const).map(t => (
-          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 min-w-[100px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
+        {(['Orders', 'Products', 'Categories', 'General', 'Stats'] as const).map(t => (
+          <button key={t} onClick={() => setActiveTab(t)} className={`flex-1 min-w-[90px] py-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === t ? 'text-blue-500' : 'opacity-40'}`}>
             {t}{t === 'Orders' && orders.filter(o => o.status === 'pending' || o.status === 'preparing').length > 0 && (
               <span className="ml-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-[7px]">{orders.filter(o => o.status === 'pending' || o.status === 'preparing').length}</span>
             )}
@@ -181,6 +246,116 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar pb-32">
+        {activeTab === 'Stats' && (
+          <div className="space-y-6 animate-scale-up">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Performance</h3>
+            <div className="grid grid-cols-2 gap-4">
+               <div className={cardStyles}>
+                  <label className={labelStyles}>Today Revenue</label>
+                  <p className="text-2xl font-black font-oswald text-green-500">{localSettings.currency}{stats.todayRevenue.toFixed(2)}</p>
+               </div>
+               <div className={cardStyles}>
+                  <label className={labelStyles}>Today Orders</label>
+                  <p className="text-2xl font-black font-oswald text-blue-500">{stats.todayOrders}</p>
+               </div>
+               <div className={cardStyles}>
+                  <label className={labelStyles}>Total Revenue</label>
+                  <p className="text-2xl font-black font-oswald text-slate-400">{localSettings.currency}{stats.totalRevenue.toFixed(2)}</p>
+               </div>
+               <div className={cardStyles}>
+                  <label className={labelStyles}>Total Orders</label>
+                  <p className="text-2xl font-black font-oswald text-slate-400">{stats.totalOrders}</p>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'General' && (
+          <div className="space-y-6">
+            <section className="space-y-4">
+              <div className="flex justify-between items-center px-1">
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Setup Guides</h3>
+                <button onClick={() => setShowGuide(!showGuide)} className="text-[8px] font-black uppercase text-blue-500 border border-blue-500/30 px-3 py-1 rounded-lg">
+                   {showGuide ? 'Hide Guides' : 'Show Guides'}
+                </button>
+              </div>
+              
+              {showGuide && (
+                <div className="space-y-4 animate-scale-up">
+                  {/* Supabase Section */}
+                  <div className={`${cardStyles} bg-emerald-500/5 border-emerald-500/20 text-[10px] space-y-4`}>
+                    <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Supabase Database Setup</p>
+                    <p className="opacity-80">1. Go to your Supabase Dashboard.</p>
+                    <p className="opacity-80">2. Open the <b>SQL Editor</b>.</p>
+                    <p className="opacity-80">3. Create a "New Query" and paste the code below:</p>
+                    <textarea 
+                      readOnly 
+                      className="w-full h-32 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
+                      value={supabaseSql}
+                      onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                    />
+                    <p className="text-[7px] font-bold opacity-50 italic">* Clicking the box selects all. Copy and Run.</p>
+                  </div>
+
+                  {/* n8n Section */}
+                  <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
+                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Notification Flow</p>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="font-bold text-white">1. Receive Order (Webhook)</p>
+                        <p className="opacity-60">Payload contains <b>customer_details.phone</b>.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-bold text-white">2. Notify You (Telegram)</p>
+                        <p className="opacity-60">Send message to your chat ID with the 4 manual buttons.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-bold text-white">3. Handle Button Click (Telegram Trigger)</p>
+                        <p className="opacity-60">When you click "Ready", get the Order ID.</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-bold text-white">4. Notify Client (WhatsApp)</p>
+                        <p className="opacity-60">Use a WhatsApp node (Twilio) to send to:</p>
+                        <code className="bg-slate-900 p-1 px-2 rounded text-blue-400">{"{{ $json.body.customer_details.phone }}"}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className={cardStyles}>
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelStyles}>n8n Webhook URL</label>
+                    <div className="flex gap-2">
+                       <input 
+                        type="url"
+                        placeholder="https://one.kaizen.indevs.in/..."
+                        className={inputStyles} 
+                        value={localSettings.notificationWebhookUrl || ''} 
+                        onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
+                       />
+                       <button onClick={sendTestWebhook} disabled={isTestingWebhook} className="bg-slate-900 text-white px-4 rounded-xl text-[8px] font-black uppercase whitespace-nowrap active:scale-95 transition-all disabled:opacity-30">
+                          {isTestingWebhook ? 'Sending...' : 'Test'}
+                       </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Identity</h3>
+              <div className={cardStyles}>
+                <div className="space-y-4">
+                  <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
+                  <div><label className={labelStyles}>Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
         {activeTab === 'Orders' && (
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
@@ -239,85 +414,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           </div>
         )}
 
-        {activeTab === 'General' && (
-          <div className="space-y-6">
-            <section className="space-y-4">
-              <div className="flex justify-between items-center px-1">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">n8n Automation</h3>
-                <button onClick={() => setShowGuide(!showGuide)} className="text-[8px] font-black uppercase text-blue-500 border border-blue-500/30 px-3 py-1 rounded-lg">
-                   {showGuide ? 'Hide Guide' : 'Setup Guide'}
-                </button>
-              </div>
-              
-              {showGuide && (
-                <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🛠️ Manual n8n Button Setup</p>
-                  
-                  <div className="space-y-4">
-                    <p className="font-bold opacity-80">1. In n8n, set <b>Reply Markup</b> to <b>Inline Keyboard</b>.</p>
-                    <p className="font-bold opacity-80">2. Add buttons with these exact <b>Callback Data</b> expressions:</p>
-                    
-                    <div className="space-y-2">
-                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black uppercase">👨‍🍳 Preparing</span>
-                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|preparing"}</code>
-                       </div>
-                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black uppercase">✅ Ready</span>
-                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|ready"}</code>
-                       </div>
-                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black uppercase">🚚 Out for Delivery</span>
-                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|out_for_delivery"}</code>
-                       </div>
-                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
-                          <span className="text-[9px] font-black uppercase">🏁 Complete</span>
-                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|completed"}</code>
-                       </div>
-                    </div>
-
-                    <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
-                      <p className="font-black text-amber-600 uppercase text-center mb-2">Message Text</p>
-                      <p className="opacity-70 mb-2">Use this expression for the <b>Text</b> field:</p>
-                      <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.message_text }}"}</code>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className={cardStyles}>
-                <div className="space-y-4">
-                  <div>
-                    <label className={labelStyles}>n8n Webhook URL</label>
-                    <div className="flex gap-2">
-                       <input 
-                        type="url"
-                        placeholder="https://one.kaizen.indevs.in/..."
-                        className={inputStyles} 
-                        value={localSettings.notificationWebhookUrl || ''} 
-                        onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
-                       />
-                       <button onClick={sendTestWebhook} disabled={isTestingWebhook} className="bg-slate-900 text-white px-4 rounded-xl text-[8px] font-black uppercase whitespace-nowrap active:scale-95 transition-all disabled:opacity-30">
-                          {isTestingWebhook ? 'Sending...' : 'Test'}
-                       </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30 px-1">Identity</h3>
-              <div className={cardStyles}>
-                <div className="space-y-4">
-                  <div><label className={labelStyles}>Brand Name</label><input className={inputStyles} value={localSettings.brandName} onChange={e => setLocalSettings({...localSettings, brandName: e.target.value})} /></div>
-                  <div><label className={labelStyles}>Currency</label><input className={inputStyles} value={localSettings.currency} onChange={e => setLocalSettings({...localSettings, currency: e.target.value})} /></div>
-                </div>
-              </div>
-            </section>
-          </div>
-        )}
-        
         {activeTab === 'Categories' && (
           <div className="space-y-3">
              <div className="flex justify-between items-center px-1 mb-2">
@@ -340,10 +436,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           <div className="space-y-4">
              <div className="flex justify-between items-center px-1 mb-2">
               <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Menu Items</h3>
-              <button onClick={() => { const id = `PROD_${Date.now()}`; setLocalSettings(prev => ({ ...prev, products: [{ id, name: 'New Item', price: 0, category: localSettings.categories[0]?.id || 'BURGERS', description: '', sizes: [], addons: [], image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c' }, ...prev.products] })); setExpandedProducts(prev => ({...prev, [id]: true})); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Add Item</button>
+              <button onClick={() => { const id = `PROD_${Date.now()}`; setLocalSettings(prev => ({ ...prev, products: [{ id, name: 'New Item', price: 0, category: localSettings.categories[0]?.id || 'BURGERS', description: '', sizes: [], addons: [], image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c', isAvailable: true }, ...prev.products] })); setExpandedProducts(prev => ({...prev, [id]: true})); }} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Add Item</button>
             </div>
             {localSettings.products.map(prod => (
-              <div key={prod.id} className={cardStyles}>
+              <div key={prod.id} className={`${cardStyles} ${prod.isAvailable === false ? 'opacity-60 grayscale' : ''}`}>
                 <div className="flex gap-4 items-center">
                   <div className="relative w-12 h-12 shrink-0">
                     <img src={prod.image} className={`w-full h-full rounded-xl object-cover ${uploadingImage === prod.id ? 'opacity-30' : 'opacity-100'}`} />
@@ -353,7 +449,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                     <p className="font-black text-xs truncate">{prod.name}</p>
                     <p className="text-[10px] font-black text-blue-500">{localSettings.currency}{prod.price.toFixed(2)}</p>
                   </div>
-                  <button onClick={() => setExpandedProducts(prev => ({...prev, [prod.id]: !prev[prod.id]}))}><ChevronDownIcon className={`transition-transform duration-300 ${expandedProducts[prod.id] ? 'rotate-180' : ''}`} /></button>
+                  <div className="flex items-center gap-3">
+                     <button 
+                        onClick={() => updateProduct(prod.id, 'isAvailable', prod.isAvailable === false)}
+                        className={`w-10 h-6 rounded-full relative transition-colors ${prod.isAvailable !== false ? 'bg-green-500' : 'bg-slate-400'}`}
+                     >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${prod.isAvailable !== false ? 'right-1' : 'left-1'}`}></div>
+                     </button>
+                     <button onClick={() => setExpandedProducts(prev => ({...prev, [prod.id]: !prev[prod.id]}))}><ChevronDownIcon className={`transition-transform duration-300 ${expandedProducts[prod.id] ? 'rotate-180' : ''}`} /></button>
+                  </div>
                 </div>
                 {expandedProducts[prod.id] && (
                   <div className="mt-4 space-y-4 border-t border-white/5 pt-4 animate-scale-up">

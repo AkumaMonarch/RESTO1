@@ -63,25 +63,37 @@ export const MenuView: React.FC<{
 
       <main {...mainScrollProps} className="flex-1 overflow-y-auto p-3 no-scrollbar pb-32 smooth-scroll relative">
         <div className="grid grid-cols-1 gap-4">
-          {filteredProducts.map(p => (
-            <div key={p.id} onClick={() => onSelectProduct(p)} 
-              className={`relative rounded-[2rem] border-2 transition-all active:scale-[0.98] flex items-stretch p-2.5 overflow-hidden min-h-[140px] cursor-pointer shadow-lg ${p.isBestseller ? 'border-amber-400 bg-amber-400/10' : isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
-              {p.isBestseller && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic tracking-tighter shadow-md">{lang === 'EN' ? 'Best Seller' : 'बेस्ट सेलर'}</div>}
-              <div className={`w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center rounded-2xl mr-4 shrink-0 self-center overflow-hidden shadow-2xl ${isDark ? 'bg-[#0F172A]/80' : 'bg-slate-50'}`}>
-                <img src={p.image} alt={p.name} className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500" loading="lazy" />
-              </div>
-              <div className="flex-1 flex flex-col py-2 overflow-hidden">
-                <div className="flex-1 mb-1">
-                  <h3 className={`text-lg font-black leading-tight mb-1 pr-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{p.name}</h3>
-                  <p className={`text-[11px] line-clamp-2 leading-relaxed opacity-60 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{p.description}</p>
+          {filteredProducts.map(p => {
+            const isSoldOut = p.isAvailable === false;
+            return (
+              <div key={p.id} onClick={() => !isSoldOut && onSelectProduct(p)} 
+                className={`relative rounded-[2rem] border-2 transition-all flex items-stretch p-2.5 overflow-hidden min-h-[140px] shadow-lg ${
+                  isSoldOut ? 'opacity-50 grayscale border-slate-200 bg-slate-100' :
+                  p.isBestseller ? 'border-amber-400 bg-amber-400/10 active:scale-[0.98]' : 
+                  isDark ? 'bg-[#1E293B] border-white/5 hover:border-white/20 active:scale-[0.98]' : 
+                  'bg-white border-slate-100 hover:border-slate-200 active:scale-[0.98]'
+                } ${isSoldOut ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                
+                {p.isBestseller && !isSoldOut && <div className="absolute top-0 left-0 bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase italic tracking-tighter shadow-md">{lang === 'EN' ? 'Best Seller' : 'बेस्ट सेलर'}</div>}
+                
+                {isSoldOut && <div className="absolute top-0 left-0 bg-slate-500 text-white text-[9px] font-black px-4 py-1.5 rounded-br-2xl z-10 uppercase tracking-widest shadow-md">{lang === 'EN' ? 'Sold Out' : 'खत्म हो गया'}</div>}
+
+                <div className={`w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center rounded-2xl mr-4 shrink-0 self-center overflow-hidden shadow-2xl ${isDark ? 'bg-[#0F172A]/80' : 'bg-slate-50'}`}>
+                  <img src={p.image} alt={p.name} className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500" loading="lazy" />
                 </div>
-                <div className="flex justify-between items-center mt-auto">
-                  <span className={`text-xl font-black font-oswald tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {p.price.toFixed(2)}</span>
-                  <button className="text-white w-11 h-11 rounded-full flex items-center justify-center text-2xl font-bold shadow-2xl active:scale-90 transition-all pb-1" style={{ backgroundColor: settings.primaryColor }}>+</button>
+                <div className="flex-1 flex flex-col py-2 overflow-hidden">
+                  <div className="flex-1 mb-1">
+                    <h3 className={`text-lg font-black leading-tight mb-1 pr-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{p.name}</h3>
+                    <p className={`text-[11px] line-clamp-2 leading-relaxed opacity-60 ${isDark ? 'text-white/80' : 'text-slate-500'}`}>{p.description}</p>
+                  </div>
+                  <div className="flex justify-between items-center mt-auto">
+                    <span className={`text-xl font-black font-oswald tracking-tight whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>{settings.currency} {p.price.toFixed(2)}</span>
+                    {!isSoldOut && <button className="text-white w-11 h-11 rounded-full flex items-center justify-center text-2xl font-bold shadow-2xl active:scale-90 transition-all pb-1" style={{ backgroundColor: settings.primaryColor }}>+</button>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
       
