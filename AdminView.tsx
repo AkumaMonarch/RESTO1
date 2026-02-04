@@ -254,34 +254,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 Final n8n Fix</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Setup Fix (from Screenshot)</p>
                   
                   <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. Fix Reserved Character '#' Error</p>
+                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. MOVE THE EXPRESSION</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      MarkdownV2 is failing because of the "#" in your text.
+                      In your screenshot, you have it in a <b>"Text"</b> box. That's for labels!
                     </p>
-                    <p className="font-bold mt-2 text-red-500 uppercase">The Fix:</p>
+                    <p className="font-bold mt-2 text-red-500 uppercase">Do this instead:</p>
                     <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
-                       <li>Find <b>"Parse Mode"</b> at the bottom of the Telegram node.</li>
-                       <li>Change it to <b>HTML</b>.</li>
-                       <li>HTML doesn't care about '#' or '.' symbols, so it will stop erroring.</li>
+                       <li>Find the <b>"Reply Markup"</b> dropdown (where you chose Inline Keyboard).</li>
+                       <li>Click the <b>Cog icon (⋮)</b> on the RIGHT of that dropdown.</li>
+                       <li>Choose <b>"Expression"</b>. The entire dropdown will vanish and become a text box.</li>
+                       <li>Paste the code there: <code className="bg-slate-900 px-2 py-1 rounded text-green-400">{"{{ $json.body.telegram_markup }}"}</code></li>
                     </ol>
                   </div>
 
                   <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">2. Use Main Reply Markup (No Warning)</p>
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">2. Parse Mode Settings</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Don't put buttons in a "Row". Use the main field:
+                       HTML is now safe! I've removed the "#" from the message text to stop errors.
                     </p>
-                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
-                      <li>Find the <b>"Reply Markup"</b> selector (where you see "Inline Keyboard").</li>
-                      <li>Click the <b>Cog icon (⋮)</b> on that exact field.</li>
-                      <li>Select <b>"Expression"</b>. The dropdown turns into a text box.</li>
-                      <li>Paste this: <br/>
-                        <code className="bg-slate-900 px-2 py-1 rounded text-green-400 block mt-1 break-all">{'{{ $json.body.telegram_markup }}'}</code>
-                      </li>
-                    </ol>
                   </div>
                 </div>
               )}

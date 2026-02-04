@@ -212,7 +212,7 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            telegram_markup: telegramMarkup // Send as raw object for n8n
+            telegram_markup: telegramMarkup 
           };
 
           fetch(settings.notificationWebhookUrl, {
