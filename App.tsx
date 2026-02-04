@@ -21,13 +21,38 @@ export default function App() {
   const [lang, setLang] = useState<'EN' | 'HI'>('EN');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [userDetails, setUserDetails] = useState<UserDetails>({ name: '', phone: '', address: '', diningMode: 'EAT_IN' });
+  const [userDetails, setUserDetails] = useState<UserDetails>({ 
+    name: '', 
+    phone: '', 
+    address: '', 
+    diningMode: 'EAT_IN',
+    platform: 'web_browser'
+  });
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
   
   const lastStatusRef = useRef<string | null>(null);
+
+  // Initialize Telegram WebApp data
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        setUserDetails(prev => ({
+          ...prev,
+          name: prev.name || `${user.first_name} ${user.last_name || ''}`.trim(),
+          telegram_id: String(user.id),
+          telegram_username: user.username,
+          platform: 'telegram'
+        }));
+      }
+    }
+  }, []);
 
   const checkIsAdmin = () => {
     const path = window.location.pathname.toLowerCase();
@@ -164,12 +189,13 @@ export default function App() {
         body: JSON.stringify({
           type: "ASSISTANCE",
           message: "🛎️ STAFF ASSISTANCE REQUESTED AT KIOSK!",
-          kiosk_id: "Kiosk 01"
+          kiosk_id: "Kiosk 01",
+          customer: userDetails
         })
       });
       showToast(lang === 'EN' ? "Staff notified!" : "कर्मचारी को सूचित किया गया!");
     }
-  }, [settings.notificationWebhookUrl, lang, showToast]);
+  }, [settings.notificationWebhookUrl, lang, showToast, userDetails]);
 
   const handleOrderConfirmed = async () => {
     setIsSubmittingOrder(true);
@@ -218,6 +244,7 @@ export default function App() {
             `👤 <b>Customer:</b> ${userDetails.name}\n` +
             `📞 <b>Phone:</b> ${userDetails.phone}\n` +
             `🍱 <b>Mode:</b> ${userDetails.diningMode.replace('_', ' ')}\n` +
+            `🖥️ <b>Platform:</b> ${userDetails.platform || 'web'}\n` +
             `${userDetails.address ? `📍 <b>Address:</b> ${userDetails.address}\n` : ''}` +
             `💰 <b>Total:</b> ${settings.currency} ${cartTotal.toFixed(2)}\n\n` +
             `<b>ITEMS:</b>\n${itemLines.join('\n')}`;
@@ -227,7 +254,7 @@ export default function App() {
             order_number: orderNumber,
             message_text: messageText,
             reply_markup: telegramMarkup,
-            customer_details: userDetails,
+            customer_details: userDetails, // Includes telegram_id and platform
             order_timestamp: { date: formattedDate, time: formattedTime },
             cart_items: cart,
             total_price: cartTotal

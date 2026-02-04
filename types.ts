@@ -76,6 +76,9 @@ export interface UserDetails {
   phone: string;
   address: string;
   diningMode: DiningMode;
+  telegram_id?: string;
+  telegram_username?: string;
+  platform?: 'telegram' | 'web_browser';
 }
 
 export enum AppView {

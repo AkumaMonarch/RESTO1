@@ -96,7 +96,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         order_number: 999,
         message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test\n💰 <b>Total:</b> Rs 0.00",
         order_id: "test-id",
-        customer_details: { name: "Test User", phone: "1234567890", address: "Test St", diningMode: "EAT_IN" }
+        customer_details: { 
+          name: "Test User", 
+          phone: "1234567890", 
+          address: "Test St", 
+          diningMode: "EAT_IN",
+          platform: 'web_browser'
+        }
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
@@ -299,21 +305,21 @@ ON CONFLICT (id) DO NOTHING;
 
                   {/* n8n Section */}
                   <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Blueprint: Notify You & Client</p>
+                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Blueprint: Smart Routing</p>
                     <div className="space-y-4">
                       <div className="p-3 bg-slate-900 rounded-xl space-y-2">
-                        <p className="font-bold text-white uppercase text-[8px]">Node 1: Webhook (The Trigger)</p>
-                        <p className="opacity-60">The kiosk sends the order here. It includes the <b>customer_details.phone</b>.</p>
+                        <p className="font-bold text-white uppercase text-[8px]">The Payload</p>
+                        <p className="opacity-60">The kiosk sends: <b>telegram_id</b> and <b>platform</b>.</p>
                       </div>
                       <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-blue-500">
-                        <p className="font-bold text-white uppercase text-[8px]">Node 2: Notify OWNER (Telegram)</p>
-                        <p className="opacity-60">Sends a message to YOU with 4 buttons: "Preparing", "Ready", etc.</p>
-                        <p className="text-[7px] text-blue-400 font-mono italic">Button Callback: {"{{ $json.body.order_id }}|ready"}</p>
+                        <p className="font-bold text-white uppercase text-[8px]">Routing Logic in n8n</p>
+                        <p className="opacity-60">Use an <b>If Node</b> in n8n:</p>
+                        <p className="text-[7px] text-blue-400 font-mono italic">Condition: customer_details.platform == "telegram"</p>
                       </div>
                       <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-green-500">
-                        <p className="font-bold text-white uppercase text-[8px]">Node 3: Notify CLIENT (WhatsApp/Telegram)</p>
-                        <p className="opacity-60">When YOU click a button, n8n sends a message to the CUSTOMER's phone:</p>
-                        <code className="bg-slate-800 p-1 px-2 rounded text-green-400 font-mono">{"{{ $json.body.customer_details.phone }}"}</code>
+                        <p className="font-bold text-white uppercase text-[8px]">The Result</p>
+                        <p className="opacity-60"><b>True:</b> Send via Telegram Bot node to <b>customer_details.telegram_id</b>.</p>
+                        <p className="opacity-60"><b>False:</b> Send via WhatsApp (Twilio) to <b>customer_details.phone</b>.</p>
                       </div>
                     </div>
                   </div>
@@ -374,9 +380,14 @@ ON CONFLICT (id) DO NOTHING;
                       <span className="text-2xl font-black font-oswald text-blue-500">#{order.order_number}</span>
                       <p className="text-[11px] font-black uppercase mt-1">{order.customer_details.name}</p>
                       <p className="text-[9px] font-bold opacity-40">{order.customer_details.phone}</p>
-                      <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded mt-1 inline-block ${order.customer_details.diningMode === 'DELIVERY' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'}`}>
-                        {order.customer_details.diningMode.replace('_', ' ')}
-                      </span>
+                      <div className="flex items-center gap-1 mt-1">
+                         <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded inline-block ${order.customer_details.diningMode === 'DELIVERY' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'}`}>
+                           {order.customer_details.diningMode.replace('_', ' ')}
+                         </span>
+                         {order.customer_details.platform === 'telegram' && (
+                           <span className="bg-[#229ED9] text-white text-[7px] font-black uppercase px-2 py-0.5 rounded">Telegram</span>
+                         )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-black text-blue-500">{localSettings.currency}{order.total_price.toFixed(2)}</span>
