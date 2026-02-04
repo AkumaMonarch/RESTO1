@@ -254,43 +254,45 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Workflow Config</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Final Integration Guide</p>
                   
-                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">CRITICAL: HTTP METHOD</p>
+                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                    <p className="font-black text-blue-500 border-b border-blue-500/10 pb-1 uppercase">Step 1: Telegram Buttons</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Your Webhook node in n8n MUST be set to **POST**.
+                      In your n8n **Telegram: Send Message** node:
                     </p>
                     <ul className="list-disc list-inside space-y-1 opacity-80 font-bold mt-2">
-                      <li>Open Webhook Node settings.</li>
-                      <li>Set <b>HTTP Method</b> to <code>POST</code>.</li>
-                      <li>Ensure <b>Authentication</b> is None (for testing).</li>
-                      <li>If using the <b>Test URL</b>, click <b>"Execute Workflow"</b> in n8n first.</li>
+                      <li>Enable <b>"Reply Markup"</b>.</li>
+                      <li>Use this expression to parse the keyboard:<br/>
+                        <code className="bg-slate-900 px-1 rounded text-blue-400">{'{{ JSON.parse($json.body.telegram_markup) }}'}</code>
+                      </li>
                     </ul>
                   </div>
 
                   <div className="space-y-3">
-                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">1. Webhook Setup</p>
+                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Handle Clicks</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Path: <code>kiosk</code>
+                      Create a second workflow with a **Telegram: On Update** node.
                     </p>
-                    <div className="space-y-2 mt-2">
-                       <p className="text-[8px] font-black opacity-40 uppercase">Production URL (Workflow must be Active):</p>
-                       <code className="block p-2 bg-slate-900 rounded text-[7px] text-blue-400 break-all select-all">
-                         https://one.kaizen.indevs.in/webhook/kiosk
-                       </code>
-                       <p className="text-[7px] opacity-40 uppercase">Testing URL (Execute Workflow first):</p>
-                       <code className="block p-2 bg-slate-900 rounded text-[7px] text-amber-400 break-all select-all">
-                         https://one.kaizen.indevs.in/webhook-test/kiosk
-                       </code>
-                    </div>
+                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
+                      <li>Select <b>"Callback Query"</b> as update type.</li>
+                      <li>Add an <b>HTTP Request</b> node to update Supabase.</li>
+                      <li>Method: <b>PATCH</b></li>
+                      <li>URL: <br/>
+                         <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1 overflow-x-auto whitespace-nowrap">https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}</code>
+                      </li>
+                      <li>In Body (JSON): <br/>
+                         <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1">{'{"status": "{{$json.callback_query.data.split("|")[1]}}"}'}</code>
+                      </li>
+                    </ol>
                   </div>
 
                   <div className="pt-2 border-t border-blue-500/10">
-                    <p className="text-[8px] opacity-40 font-black uppercase">HTTP Request Node (Back to Supabase):</p>
-                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all leading-relaxed select-all">
-                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}
-                    </code>
+                    <p className="text-[8px] opacity-40 font-black uppercase">Required Headers for Supabase:</p>
+                    <div className="bg-slate-900 p-2 rounded mt-1 space-y-1">
+                      <p className="text-[7px] text-green-400">apikey: (Your Supabase Key)</p>
+                      <p className="text-[7px] text-green-400">Content-Type: application/json</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -299,7 +301,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className="space-y-4">
                   <div>
                     <label className={labelStyles}>n8n Webhook URL</label>
-                    <p className="text-[8px] opacity-40 font-bold mb-2">Enter the n8n endpoint URL here.</p>
+                    <p className="text-[8px] opacity-40 font-bold mb-2">Target for order notifications (Production or Test).</p>
                     <div className="flex gap-2">
                        <input 
                         type="url"
