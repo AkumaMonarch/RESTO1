@@ -156,10 +156,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
     }
   };
 
-  const supabaseSql = `
+  const safeSupabaseSql = `
+-- SAFE SQL: Can be run even if tables already exist
 -- 1. Create Config Table
-create table kiosk_config (
-  id bigint primary key,
+CREATE TABLE IF NOT EXISTS kiosk_config (
+  id bigint PRIMARY KEY,
   brand_name text,
   primary_color text,
   theme_mode text,
@@ -170,41 +171,42 @@ create table kiosk_config (
 );
 
 -- 2. Create Categories Table
-create table kiosk_categories (
-  id text primary key,
+CREATE TABLE IF NOT EXISTS kiosk_categories (
+  id text PRIMARY KEY,
   label text,
   icon text,
   background_image text
 );
 
 -- 3. Create Products Table
-create table kiosk_products (
-  id text primary key,
+CREATE TABLE IF NOT EXISTS kiosk_products (
+  id text PRIMARY KEY,
   name text,
   price numeric,
   image text,
-  category_id text references kiosk_categories(id),
+  category_id text REFERENCES kiosk_categories(id),
   description text,
-  is_bestseller boolean default false,
-  is_available boolean default true,
-  sizes jsonb default '[]',
-  addons jsonb default '[]'
+  is_bestseller boolean DEFAULT false,
+  is_available boolean DEFAULT true,
+  sizes jsonb DEFAULT '[]',
+  addons jsonb DEFAULT '[]'
 );
 
 -- 4. Create Orders Table
-create table kiosk_orders (
-  id uuid default gen_random_uuid() primary key,
+CREATE TABLE IF NOT EXISTS kiosk_orders (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   order_number int,
   customer_details jsonb,
   cart_items jsonb,
   total_price numeric,
-  status text default 'pending',
-  created_at timestamp with time zone default now()
+  status text DEFAULT 'pending',
+  created_at timestamp with time zone DEFAULT now()
 );
 
--- Insert initial config
-insert into kiosk_config (id, brand_name, primary_color, theme_mode, currency)
-values (1, 'LittleIndia', '#E4002B', 'light', 'Rs');
+-- 5. Insert or Update initial config
+INSERT INTO kiosk_config (id, brand_name, primary_color, theme_mode, currency)
+VALUES (1, 'LittleIndia', '#E4002B', 'light', 'Rs')
+ON CONFLICT (id) DO NOTHING;
   `.trim();
 
   return (
@@ -284,39 +286,34 @@ values (1, 'LittleIndia', '#E4002B', 'light', 'Rs');
                 <div className="space-y-4 animate-scale-up">
                   {/* Supabase Section */}
                   <div className={`${cardStyles} bg-emerald-500/5 border-emerald-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Supabase Database Setup</p>
-                    <p className="opacity-80">1. Go to your Supabase Dashboard.</p>
-                    <p className="opacity-80">2. Open the <b>SQL Editor</b>.</p>
-                    <p className="opacity-80">3. Create a "New Query" and paste the code below:</p>
+                    <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Fix "Already Exists" Error</p>
+                    <p className="opacity-80">If you get an error saying something "already exists", use this <b>Safe Script</b> below. It checks if the table exists before trying to create it.</p>
                     <textarea 
                       readOnly 
                       className="w-full h-32 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
-                      value={supabaseSql}
+                      value={safeSupabaseSql}
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                     />
-                    <p className="text-[7px] font-bold opacity-50 italic">* Clicking the box selects all. Copy and Run.</p>
+                    <p className="text-[7px] font-bold opacity-50 italic">* This script uses "IF NOT EXISTS" for all tables.</p>
                   </div>
 
                   {/* n8n Section */}
                   <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Notification Flow</p>
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <p className="font-bold text-white">1. Receive Order (Webhook)</p>
-                        <p className="opacity-60">Payload contains <b>customer_details.phone</b>.</p>
+                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Blueprint: Notify You & Client</p>
+                    <div className="space-y-4">
+                      <div className="p-3 bg-slate-900 rounded-xl space-y-2">
+                        <p className="font-bold text-white uppercase text-[8px]">Node 1: Webhook (The Trigger)</p>
+                        <p className="opacity-60">The kiosk sends the order here. It includes the <b>customer_details.phone</b>.</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="font-bold text-white">2. Notify You (Telegram)</p>
-                        <p className="opacity-60">Send message to your chat ID with the 4 manual buttons.</p>
+                      <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-blue-500">
+                        <p className="font-bold text-white uppercase text-[8px]">Node 2: Notify OWNER (Telegram)</p>
+                        <p className="opacity-60">Sends a message to YOU with 4 buttons: "Preparing", "Ready", etc.</p>
+                        <p className="text-[7px] text-blue-400 font-mono italic">Button Callback: {"{{ $json.body.order_id }}|ready"}</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="font-bold text-white">3. Handle Button Click (Telegram Trigger)</p>
-                        <p className="opacity-60">When you click "Ready", get the Order ID.</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="font-bold text-white">4. Notify Client (WhatsApp)</p>
-                        <p className="opacity-60">Use a WhatsApp node (Twilio) to send to:</p>
-                        <code className="bg-slate-900 p-1 px-2 rounded text-blue-400">{"{{ $json.body.customer_details.phone }}"}</code>
+                      <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-green-500">
+                        <p className="font-bold text-white uppercase text-[8px]">Node 3: Notify CLIENT (WhatsApp/Telegram)</p>
+                        <p className="opacity-60">When YOU click a button, n8n sends a message to the CUSTOMER's phone:</p>
+                        <code className="bg-slate-800 p-1 px-2 rounded text-green-400 font-mono">{"{{ $json.body.customer_details.phone }}"}</code>
                       </div>
                     </div>
                   </div>
