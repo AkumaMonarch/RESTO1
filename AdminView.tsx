@@ -82,9 +82,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         test: true,
         order_number: 999,
         message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test\n💰 <b>Total:</b> Rs 0.00",
-        reply_markup: JSON.stringify({
-          inline_keyboard: [[{ text: "Test", callback_data: "test|preparing" }]]
-        })
+        order_id: "test-id"
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
         method: 'POST',
@@ -253,25 +251,36 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Field Mapping (MANDATORY)</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🛠️ Manual n8n Button Setup</p>
                   
-                  <div className="space-y-3 bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
-                    <p className="font-black text-blue-600 border-b border-blue-500/10 pb-1 uppercase text-center">TEXT FIELD</p>
-                    <p className="font-bold opacity-80 leading-relaxed mb-1">Paste this in the <b>Text</b> field of your Telegram node:</p>
-                    <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.message_text }}"}</code>
-                  </div>
+                  <div className="space-y-4">
+                    <p className="font-bold opacity-80">1. In n8n, set <b>Reply Markup</b> to <b>Inline Keyboard</b>.</p>
+                    <p className="font-bold opacity-80">2. Add buttons with these exact <b>Callback Data</b> expressions:</p>
+                    
+                    <div className="space-y-2">
+                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-black uppercase">👨‍🍳 Preparing</span>
+                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|preparing"}</code>
+                       </div>
+                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-black uppercase">✅ Ready</span>
+                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|ready"}</code>
+                       </div>
+                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-black uppercase">🚚 Out for Delivery</span>
+                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|out_for_delivery"}</code>
+                       </div>
+                       <div className="flex justify-between items-center bg-slate-900 p-2.5 rounded-xl border border-white/5">
+                          <span className="text-[9px] font-black uppercase">🏁 Complete</span>
+                          <code className="text-blue-400 font-mono text-[8px]">{"{{ $json.body.order_id }}|completed"}</code>
+                       </div>
+                    </div>
 
-                  <div className="space-y-3 bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
-                    <p className="font-black text-amber-600 border-b border-amber-500/10 pb-1 uppercase text-center">REPLY MARKUP</p>
-                    <p className="font-bold opacity-80 mb-2">1. Click the <b>3 dots (⋮)</b> next to Reply Markup dropdown.</p>
-                    <p className="font-bold opacity-80 mb-2">2. Select <b>Expression</b>.</p>
-                    <p className="font-bold opacity-80 mb-2">3. Paste this exact code:</p>
-                    <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.reply_markup }}"}</code>
-                  </div>
-
-                  <div className="space-y-3 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase text-center">IMPORTANT SETTING</p>
-                    <p className="font-bold opacity-80">Make sure <b>Parse Mode</b> is set to <b>HTML</b>. This allows the bold order numbers to work!</p>
+                    <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+                      <p className="font-black text-amber-600 uppercase text-center mb-2">Message Text</p>
+                      <p className="opacity-70 mb-2">Use this expression for the <b>Text</b> field:</p>
+                      <code className="bg-slate-900 p-2 rounded-lg text-green-400 block text-center font-mono select-all">{"{{ $json.body.message_text }}"}</code>
+                    </div>
                   </div>
                 </div>
               )}
@@ -280,7 +289,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className="space-y-4">
                   <div>
                     <label className={labelStyles}>n8n Webhook URL</label>
-                    <p className="text-[8px] opacity-40 font-bold mb-2">Paste your n8n Production Webhook URL here.</p>
                     <div className="flex gap-2">
                        <input 
                         type="url"
