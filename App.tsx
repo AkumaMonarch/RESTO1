@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { AppView, CartItem, Product, UserDetails, AppSettings, SizeOption, AddonOption, Category, Order, DiningMode } from './types';
-import { DEFAULT_SETTINGS } from './constants';
+import { DEFAULT_SETTINGS, DEFAULT_CATEGORIES, DEFAULT_PRODUCTS } from './constants';
 import { supabase } from './supabase';
 
 import { LandingView } from './LandingView';
@@ -75,30 +75,45 @@ export default function App() {
         supabase.from('kiosk_products').select('*')
       ]);
 
-      if (configRes.data && catRes.data && prodRes.data) {
-        setSettings({
-          brandName: configRes.data.brand_name || DEFAULT_SETTINGS.brandName,
-          primaryColor: configRes.data.primary_color || DEFAULT_SETTINGS.primaryColor,
-          themeMode: configRes.data.theme_mode as 'light' | 'dark' || DEFAULT_SETTINGS.themeMode,
-          currency: configRes.data.currency || DEFAULT_SETTINGS.currency,
-          workingHours: configRes.data.working_hours || DEFAULT_SETTINGS.workingHours,
-          forceHolidays: configRes.data.force_holidays || [],
-          notificationWebhookUrl: configRes.data.notification_webhook_url || '',
-          categories: catRes.data.map(c => ({ id: c.id, label: c.label, icon: c.icon, backgroundImage: c.background_image })),
-          products: prodRes.data.map(p => ({
-            id: p.id,
-            name: p.name,
-            price: parseFloat(p.price) || 0,
-            image: p.image,
-            category: p.category_id,
-            description: p.description,
-            isBestseller: p.is_bestseller,
-            isAvailable: p.is_available !== false,
-            sizes: p.sizes || [],
-            addons: p.addons || []
-          }))
-        });
+      let updatedSettings = { ...DEFAULT_SETTINGS };
+
+      // Update Config if exists
+      if (configRes.data) {
+        updatedSettings.brandName = configRes.data.brand_name || updatedSettings.brandName;
+        updatedSettings.primaryColor = configRes.data.primary_color || updatedSettings.primaryColor;
+        updatedSettings.themeMode = configRes.data.theme_mode as 'light' | 'dark' || updatedSettings.themeMode;
+        updatedSettings.currency = configRes.data.currency || updatedSettings.currency;
+        updatedSettings.workingHours = configRes.data.working_hours || updatedSettings.workingHours;
+        updatedSettings.notificationWebhookUrl = configRes.data.notification_webhook_url || '';
       }
+
+      // Only overwrite categories if database has them
+      if (catRes.data && catRes.data.length > 0) {
+        updatedSettings.categories = catRes.data.map(c => ({ 
+          id: c.id, 
+          label: c.label, 
+          icon: c.icon, 
+          backgroundImage: c.background_image 
+        }));
+      }
+
+      // Only overwrite products if database has them
+      if (prodRes.data && prodRes.data.length > 0) {
+        updatedSettings.products = prodRes.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          price: parseFloat(p.price) || 0,
+          image: p.image,
+          category: p.category_id,
+          description: p.description,
+          isBestseller: p.is_bestseller,
+          isAvailable: p.is_available !== false,
+          sizes: p.sizes || [],
+          addons: p.addons || []
+        }));
+      }
+
+      setSettings(updatedSettings);
 
       const { data: ordersData } = await supabase.from('kiosk_orders')
         .select('*')

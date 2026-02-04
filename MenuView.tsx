@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppSettings, Product, CategoryType } from './types';
 import { useGrabToScroll } from './useGrabToScroll';
 
@@ -18,6 +18,18 @@ export const MenuView: React.FC<{
   const navScrollProps = useGrabToScroll('horizontal');
   const mainScrollProps = useGrabToScroll('vertical');
   const isDark = settings.themeMode === 'dark';
+
+  // Fallback if 'RECOMMENDED' is empty
+  useEffect(() => {
+    if (activeCategory === 'RECOMMENDED') {
+      const recommends = settings.products.filter(p => p.isBestseller);
+      if (recommends.length === 0 && settings.categories.length > 1) {
+        // Find the first category that isn't RECOMMENDED or just the 2nd one
+        const fallback = settings.categories.find(c => c.id !== 'RECOMMENDED');
+        if (fallback) setActiveCategory(fallback.id);
+      }
+    }
+  }, [settings.products, settings.categories, activeCategory]);
 
   const filteredProducts = useMemo(() => {
     let list = settings.products;
@@ -49,14 +61,20 @@ export const MenuView: React.FC<{
       <div className={`relative flex-shrink-0 border-b overflow-hidden ${isDark ? 'bg-[#1E293B]' : 'bg-white'}`}>
         <div className="mask-edges">
           <nav {...navScrollProps} className="overflow-x-auto no-scrollbar py-4 px-4 flex flex-nowrap items-center space-x-3 z-10 touch-pan-x select-none">
-            {settings.categories.map(cat => (
-              <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSearchQuery(''); }} 
-                className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 rounded-xl transition-all whitespace-nowrap border-2 shadow-sm ${activeCategory === cat.id && !searchQuery ? 'text-white shadow-md scale-105' : isDark ? 'bg-slate-800/80 border-white/5 text-white/40' : 'bg-slate-50 border-slate-100 text-slate-400'}`} 
-                style={activeCategory === cat.id && !searchQuery ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
-                <span className="text-lg">{cat.icon}</span>
-                <span className="text-[10px] font-black uppercase tracking-tight">{cat.label}</span>
-              </button>
-            ))}
+            {settings.categories.map(cat => {
+              // Only show category if it has products OR if it's RECOMMENDED
+              const hasItems = settings.products.some(p => p.category === cat.id) || cat.id === 'RECOMMENDED';
+              if (!hasItems) return null;
+
+              return (
+                <button key={cat.id} onClick={() => { setActiveCategory(cat.id); setSearchQuery(''); }} 
+                  className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 rounded-xl transition-all whitespace-nowrap border-2 shadow-sm ${activeCategory === cat.id && !searchQuery ? 'text-white shadow-md scale-105' : isDark ? 'bg-slate-800/80 border-white/5 text-white/40' : 'bg-slate-50 border-slate-100 text-slate-400'}`} 
+                  style={activeCategory === cat.id && !searchQuery ? { backgroundColor: settings.primaryColor, borderColor: settings.primaryColor } : {}}>
+                  <span className="text-lg">{cat.icon}</span>
+                  <span className="text-[10px] font-black uppercase tracking-tight">{cat.label}</span>
+                </button>
+              );
+            })}
           </nav>
         </div>
       </div>

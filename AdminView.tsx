@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { AppSettings, Category, Product, Order, OrderStatus } from './types';
 import { BackIcon, TrashIcon, SearchIcon, CameraIcon, UploadIcon, ChevronDownIcon, CheckIcon } from './Icons';
-import { THEME_PRESETS } from './constants';
+import { THEME_PRESETS, DEFAULT_CATEGORIES, DEFAULT_PRODUCTS } from './constants';
 import { supabase } from './supabase';
 
 interface AdminViewProps {
@@ -215,6 +215,30 @@ VALUES (1, 'LittleIndia', '#E4002B', 'light', 'Rs')
 ON CONFLICT (id) DO NOTHING;
   `.trim();
 
+  // Generate Seed SQL for default categories and products
+  const seedSql = `
+-- RUN THIS TO SEE PRODUCTS IF YOUR DB IS EMPTY
+-- 1. Insert Categories
+INSERT INTO kiosk_categories (id, label, icon, background_image)
+VALUES 
+  ('RECOMMENDED', 'RECOMMENDS', '🔥', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80'),
+  ('BURGERS', 'BURGERS', '🍔', 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80'),
+  ('BUCKETS', 'BUCKETS', '🍗', 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80'),
+  ('MEALS', 'BOX MEALS', '🍱', 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80'),
+  ('SIDES', 'SIDES', '🍟', NULL),
+  ('DRINKS', 'DRINKS', '🥤', NULL),
+  ('DESSERTS', 'DESSERTS', '🍦', NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Insert Products
+INSERT INTO kiosk_products (id, name, price, image, category_id, description, is_bestseller, sizes, addons)
+VALUES 
+  ('b1', 'Kentucky Gold Grander', 33.95, 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Bacon, onion rings, cheddar cheese and BBQ sauce with crispy chicken.', true, '[{"label": "Small", "price": 0}, {"label": "Medium", "price": 5}, {"label": "Large", "price": 10}]', '[{"label": "Double Cheese", "price": 1.5}, {"label": "Extra Bacon", "price": 2.0}]'),
+  ('b2', 'Double Grander', 29.95, 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=400&q=80', 'BURGERS', 'Double chicken fillet, cheese, and fresh lettuce.', false, '[{"label": "Small", "price": 0}, {"label": "Medium", "price": 5}, {"label": "Large", "price": 10}]', '[]'),
+  ('k1', '15 Hot Wings Bucket', 45.00, 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=400&q=80', 'BUCKETS', 'The ultimate bucket for spice lovers.', true, '[{"label": "Regular", "price": 0}, {"label": "Giant", "price": 15}]', '[]')
+ON CONFLICT (id) DO NOTHING;
+  `.trim();
+
   return (
     <div className={`h-full flex flex-col animate-scale-up overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0F172A] text-white' : 'bg-[#F8FAFC] text-slate-900'}`}>
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={camInputRef} onChange={handleFileChange} />
@@ -290,38 +314,28 @@ ON CONFLICT (id) DO NOTHING;
               
               {showGuide && (
                 <div className="space-y-4 animate-scale-up">
+                  {/* Seed Section */}
+                  <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
+                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 SEED DATA: Populates your menu</p>
+                    <p className="opacity-80">If your menu is empty, copy this and run it in the Supabase SQL Editor to add the default items.</p>
+                    <textarea 
+                      readOnly 
+                      className="w-full h-32 bg-slate-900 text-blue-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
+                      value={seedSql}
+                      onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                    />
+                  </div>
+
                   {/* Supabase Section */}
                   <div className={`${cardStyles} bg-emerald-500/5 border-emerald-500/20 text-[10px] space-y-4`}>
                     <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Fix "Already Exists" Error</p>
-                    <p className="opacity-80">If you get an error saying something "already exists", use this <b>Safe Script</b> below. It checks if the table exists before trying to create it.</p>
+                    <p className="opacity-80">If you get an error saying something "already exists", use this <b>Safe Script</b> below.</p>
                     <textarea 
                       readOnly 
-                      className="w-full h-32 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
+                      className="w-full h-24 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[8px] border border-white/5"
                       value={safeSupabaseSql}
                       onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                     />
-                    <p className="text-[7px] font-bold opacity-50 italic">* This script uses "IF NOT EXISTS" for all tables.</p>
-                  </div>
-
-                  {/* n8n Section */}
-                  <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
-                    <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Blueprint: Smart Routing</p>
-                    <div className="space-y-4">
-                      <div className="p-3 bg-slate-900 rounded-xl space-y-2">
-                        <p className="font-bold text-white uppercase text-[8px]">The Payload</p>
-                        <p className="opacity-60">The kiosk sends: <b>telegram_id</b> and <b>platform</b>.</p>
-                      </div>
-                      <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-blue-500">
-                        <p className="font-bold text-white uppercase text-[8px]">Routing Logic in n8n</p>
-                        <p className="opacity-60">Use an <b>If Node</b> in n8n:</p>
-                        <p className="text-[7px] text-blue-400 font-mono italic">Condition: customer_details.platform == "telegram"</p>
-                      </div>
-                      <div className="p-3 bg-slate-900 rounded-xl space-y-2 border-l-4 border-green-500">
-                        <p className="font-bold text-white uppercase text-[8px]">The Result</p>
-                        <p className="opacity-60"><b>True:</b> Send via Telegram Bot node to <b>customer_details.telegram_id</b>.</p>
-                        <p className="opacity-60"><b>False:</b> Send via WhatsApp (Twilio) to <b>customer_details.phone</b>.</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
