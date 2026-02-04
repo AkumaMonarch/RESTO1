@@ -212,7 +212,8 @@ export default function App() {
             mode: userDetails.diningMode,
             address: userDetails.address || 'N/A',
             items_summary: summaryLines.join('\n'),
-            telegram_markup: telegramMarkup 
+            // CRITICAL FIX: n8n expects a string if passed into the markup field expression
+            telegram_markup: JSON.stringify(telegramMarkup) 
           };
 
           fetch(settings.notificationWebhookUrl, {

@@ -254,26 +254,32 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Setup Fix (from Screenshot)</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 n8n Setup Instructions</p>
                   
-                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. MOVE THE EXPRESSION</p>
-                    <p className="font-bold opacity-80 leading-relaxed">
-                      In your screenshot, you have it in a <b>"Text"</b> box. That's for labels!
+                  <div className="space-y-3 bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
+                    <p className="font-black text-blue-600 border-b border-blue-500/10 pb-1 uppercase">1. THE EXPRESSION</p>
+                    <p className="font-bold opacity-80 leading-relaxed mb-2">
+                       Paste this exact code into the <b>main Reply Markup</b> field:
                     </p>
-                    <p className="font-bold mt-2 text-red-500 uppercase">Do this instead:</p>
+                    <code className="bg-slate-900 p-3 rounded-xl text-green-400 block text-center font-mono select-all border border-white/10">
+                      {"{{ $json.body.telegram_markup }}"}
+                    </code>
+                  </div>
+
+                  <div className="space-y-3 bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+                    <p className="font-black text-amber-600 border-b border-amber-500/10 pb-1 uppercase">2. SWITCH TO EXPRESSION MODE</p>
                     <ol className="list-decimal list-inside space-y-2 font-bold opacity-80">
-                       <li>Find the <b>"Reply Markup"</b> dropdown (where you chose Inline Keyboard).</li>
-                       <li>Click the <b>Cog icon (⋮)</b> on the RIGHT of that dropdown.</li>
-                       <li>Choose <b>"Expression"</b>. The entire dropdown will vanish and become a text box.</li>
-                       <li>Paste the code there: <code className="bg-slate-900 px-2 py-1 rounded text-green-400">{"{{ $json.body.telegram_markup }}"}</code></li>
+                       <li>In your Telegram node, find the <b>"Reply Markup"</b> dropdown.</li>
+                       <li>Click the <b>Cog icon (⋮)</b> on the right side of that field.</li>
+                       <li>Select <b>"Expression"</b> from the menu.</li>
+                       <li>The dropdown will turn into a text box. Paste the code above into it.</li>
                     </ol>
                   </div>
 
-                  <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
-                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">2. Parse Mode Settings</p>
-                    <p className="font-bold opacity-80 leading-relaxed">
-                       HTML is now safe! I've removed the "#" from the message text to stop errors.
+                  <div className="space-y-3 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">3. PARSE MODE</p>
+                    <p className="font-bold opacity-80">
+                       Ensure <b>Parse Mode</b> is set to <b>HTML</b>. This is now safe as I removed the problematic characters from the app.
                     </p>
                   </div>
                 </div>
