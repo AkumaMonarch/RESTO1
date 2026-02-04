@@ -256,32 +256,33 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
                   <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Final Integration Guide</p>
                   
-                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                    <p className="font-black text-blue-500 border-b border-blue-500/10 pb-1 uppercase">Step 1: Telegram Buttons</p>
+                  <div className="space-y-3 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                    <p className="font-black text-green-600 border-b border-green-500/10 pb-1 uppercase">Step 1: Fix Telegram Buttons</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      In your n8n **Telegram: Send Message** node:
+                      To fix the "Object Not Supported" error from your screenshot:
                     </p>
-                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold mt-2">
-                      <li>Enable <b>"Reply Markup"</b>.</li>
-                      <li>Use this expression to parse the keyboard:<br/>
-                        <code className="bg-slate-900 px-1 rounded text-blue-400">{'{{ JSON.parse($json.body.telegram_markup) }}'}</code>
+                    <ol className="list-decimal list-inside space-y-2 font-bold opacity-80 mt-2">
+                      <li>In n8n Telegram Node, look for the <b>"Reply Markup"</b> field.</li>
+                      <li>Turn ON the <b>Expression (cog)</b> icon on the <b>MAIN</b> Reply Markup field.</li>
+                      <li>Paste this exactly: <br/>
+                        <code className="bg-slate-900 px-2 py-1 rounded text-green-400 block mt-1 break-all">{'{{ $json.body.telegram_markup }}'}</code>
                       </li>
-                    </ul>
+                      <li><b>Important:</b> This bypasses the Row/Button UI which causes the error.</li>
+                    </ol>
                   </div>
 
-                  <div className="space-y-3">
-                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Handle Clicks</p>
+                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                    <p className="font-black border-b border-blue-500/10 pb-1 uppercase">Step 2: Handle Button Clicks</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Create a second workflow with a **Telegram: On Update** node.
+                      Create a NEW workflow with a **Telegram Trigger** (Callback Query).
                     </p>
-                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
-                      <li>Select <b>"Callback Query"</b> as update type.</li>
-                      <li>Add an <b>HTTP Request</b> node to update Supabase.</li>
+                    <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed mt-2">
+                      <li>Add an <b>HTTP Request</b> node.</li>
                       <li>Method: <b>PATCH</b></li>
-                      <li>URL: <br/>
+                      <li>URL (Expression): <br/>
                          <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1 overflow-x-auto whitespace-nowrap">https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}</code>
                       </li>
-                      <li>In Body (JSON): <br/>
+                      <li>Body (JSON): <br/>
                          <code className="text-[7px] bg-slate-900 p-1 block rounded mt-1">{'{"status": "{{$json.callback_query.data.split("|")[1]}}"}'}</code>
                       </li>
                     </ol>
@@ -290,7 +291,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
                   <div className="pt-2 border-t border-blue-500/10">
                     <p className="text-[8px] opacity-40 font-black uppercase">Required Headers for Supabase:</p>
                     <div className="bg-slate-900 p-2 rounded mt-1 space-y-1">
-                      <p className="text-[7px] text-green-400">apikey: (Your Supabase Key)</p>
+                      <p className="text-[7px] text-green-400">apikey: (Your Supabase Anon Key)</p>
                       <p className="text-[7px] text-green-400">Content-Type: application/json</p>
                     </div>
                   </div>
