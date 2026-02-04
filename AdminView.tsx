@@ -92,10 +92,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (res.ok) alert("Test Sent! Check your automation.");
-      else alert("Webhook returned an error.");
+      if (res.ok) alert("Test Sent to n8n! Check your execution log.");
+      else alert("n8n returned an error. Make sure the node is active.");
     } catch (e) {
-      alert("Connection failed.");
+      alert("Connection to n8n failed. Check URL or network.");
     } finally {
       setIsTestingWebhook(false);
     }
@@ -241,46 +241,47 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           <div className="space-y-6">
             <section className="space-y-4">
               <div className="flex justify-between items-center px-1">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">Integrations</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] opacity-30">n8n Automation</h3>
                 <button onClick={() => setShowGuide(!showGuide)} className="text-[8px] font-black uppercase text-blue-500 border border-blue-500/30 px-3 py-1 rounded-lg">
-                   {showGuide ? 'Close Guide' : 'Setup Guide'}
+                   {showGuide ? 'Hide Guide' : 'Setup Guide'}
                 </button>
               </div>
               
               {showGuide && (
                 <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4 animate-scale-up`}>
-                  <p className="font-black text-blue-500 uppercase tracking-widest">🚀 Make.com Button Click FIX</p>
+                  <p className="font-black text-blue-500 uppercase tracking-widest">⚡ n8n Workflow Config</p>
                   
-                  <div className="space-y-3 bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                    <p className="font-black text-red-500 border-b border-red-500/10 pb-1 uppercase">1. WHY BUTTONS "DO NOTHING"</p>
+                  <div className="space-y-3 bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                    <p className="font-black text-blue-500 border-b border-blue-500/10 pb-1 uppercase">1. Webhook Setup</p>
                     <p className="font-bold opacity-80 leading-relaxed">
-                      Make.com nodes often filter out everything except "Messages". Clicking a button is a <b>"Callback Query"</b>.
+                      Use a <b>Webhook Node</b> in n8n. Set Method to <b>POST</b> and Path to <b>kiosk</b>.
                     </p>
-                    <ul className="list-disc list-inside space-y-1 opacity-80 font-bold mt-2">
-                      <li>Open <span className="text-blue-500">Watch Updates</span> node settings.</li>
-                      <li>Click <b>"Show advanced settings"</b>.</li>
-                      <li>In <b>"Allowed updates"</b>, make sure <span className="bg-blue-500 text-white px-1 rounded">Callback Query</span> is selected.</li>
-                      <li>Save and click <b>"Run Once"</b>.</li>
-                    </ul>
+                    <div className="space-y-2 mt-2">
+                       <p className="text-[8px] font-black opacity-40 uppercase">Recommended URLs:</p>
+                       <code className="block p-2 bg-slate-900 rounded text-[7px] text-blue-400 break-all select-all">
+                         https://one.kaizen.indevs.in/webhook/kiosk
+                       </code>
+                       <p className="text-[7px] opacity-40 uppercase">Testing URL (Executes on "Listen"):</p>
+                       <code className="block p-2 bg-slate-900 rounded text-[7px] text-amber-400 break-all select-all">
+                         https://one.kaizen.indevs.in/webhook-test/kiosk
+                       </code>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
-                    <p className="font-black border-b border-blue-500/10 pb-1">2. TELEGRAM MODULE SETTINGS</p>
+                    <p className="font-black border-b border-blue-500/10 pb-1">2. Telegram Integration</p>
                     <ol className="list-decimal list-inside space-y-1 font-bold opacity-80 leading-relaxed">
-                      <li>Use <span className="text-blue-500">Telegram Bot: Send Message</span>.</li>
-                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to Text.</li>
-                      <li>Find the <b>"Reply Markup"</b> field. Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_markup</code> from our Webhook to it.</li>
+                      <li>Add a <b>Telegram Node</b> (Action: Send Message).</li>
+                      <li>Map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">items_summary</code> to the text body.</li>
+                      <li>Enable <b>Reply Markup</b> and map <code className="bg-slate-800 px-1 rounded text-white text-[8px]">telegram_markup</code> from the Webhook JSON.</li>
                     </ol>
                   </div>
 
                   <div className="pt-2 border-t border-blue-500/10">
-                    <p className="text-[8px] opacity-40 font-black uppercase">Supabase Update API (HTTP Module):</p>
-                    {/* Fixed double curly braces misinterpretation by wrapping in string literals */}
-                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all leading-relaxed">
-                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{split(1.callback_query.data; "|")[1]}}'}
+                    <p className="text-[8px] opacity-40 font-black uppercase">HTTP Request Node (Back to Supabase):</p>
+                    <code className="block p-2 bg-slate-900 rounded mt-1 text-[7px] text-green-400 break-all leading-relaxed select-all">
+                      PATCH https://rfppmfygzrtlswdqawbv.supabase.co/rest/v1/kiosk_orders?id=eq.{'{{$json.callback_query.data.split("|")[0]}}'}
                     </code>
-                    {/* Fixed double curly braces misinterpretation by wrapping in string literals */}
-                    <p className="text-[7px] opacity-40 mt-1">Status mapping: <code className="text-blue-400">{'{{split(1.callback_query.data; "|")[2]}}'}</code></p>
                   </div>
                 </div>
               )}
@@ -288,12 +289,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
               <div className={cardStyles}>
                 <div className="space-y-4">
                   <div>
-                    <label className={labelStyles}>Make.com Webhook URL</label>
-                    <p className="text-[8px] opacity-40 font-bold mb-2">Send orders to Telegram/WhatsApp via Make Automation.</p>
+                    <label className={labelStyles}>n8n Webhook URL</label>
+                    <p className="text-[8px] opacity-40 font-bold mb-2">Target URL for order notifications (Production or Test).</p>
                     <div className="flex gap-2">
                        <input 
                         type="url"
-                        placeholder="https://hook.make.com/..."
+                        placeholder="https://one.kaizen.indevs.in/..."
                         className={inputStyles} 
                         value={localSettings.notificationWebhookUrl || ''} 
                         onChange={e => setLocalSettings({...localSettings, notificationWebhookUrl: e.target.value})} 
