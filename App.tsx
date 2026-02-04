@@ -77,7 +77,6 @@ export default function App() {
 
       let updatedSettings = { ...DEFAULT_SETTINGS };
 
-      // Update Config if exists
       if (configRes.data) {
         updatedSettings.brandName = configRes.data.brand_name || updatedSettings.brandName;
         updatedSettings.primaryColor = configRes.data.primary_color || updatedSettings.primaryColor;
@@ -87,7 +86,6 @@ export default function App() {
         updatedSettings.notificationWebhookUrl = configRes.data.notification_webhook_url || '';
       }
 
-      // Only overwrite categories if database has them
       if (catRes.data && catRes.data.length > 0) {
         updatedSettings.categories = catRes.data.map(c => ({ 
           id: c.id, 
@@ -97,7 +95,6 @@ export default function App() {
         }));
       }
 
-      // Only overwrite products if database has them
       if (prodRes.data && prodRes.data.length > 0) {
         updatedSettings.products = prodRes.data.map(p => ({
           id: p.id,
@@ -269,8 +266,9 @@ export default function App() {
             order_number: orderNumber,
             message_text: messageText,
             reply_markup: telegramMarkup,
-            customer_details: userDetails, // Includes telegram_id and platform
-            order_timestamp: { date: formattedDate, time: formattedTime },
+            customer_details: userDetails,
+            order_date: formattedDate,
+            order_time: formattedTime,
             cart_items: cart,
             total_price: cartTotal
           };

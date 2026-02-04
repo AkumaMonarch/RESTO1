@@ -21,13 +21,10 @@ export const MenuView: React.FC<{
 
   // Fallback if 'RECOMMENDED' is empty
   useEffect(() => {
-    if (activeCategory === 'RECOMMENDED') {
-      const recommends = settings.products.filter(p => p.isBestseller);
-      if (recommends.length === 0 && settings.categories.length > 1) {
-        // Find the first category that isn't RECOMMENDED or just the 2nd one
-        const fallback = settings.categories.find(c => c.id !== 'RECOMMENDED');
-        if (fallback) setActiveCategory(fallback.id);
-      }
+    const recommends = settings.products.filter(p => p.isBestseller);
+    if (activeCategory === 'RECOMMENDED' && recommends.length === 0) {
+      const fallback = settings.categories.find(c => c.id !== 'RECOMMENDED' && settings.products.some(p => p.category === c.id));
+      if (fallback) setActiveCategory(fallback.id);
     }
   }, [settings.products, settings.categories, activeCategory]);
 
@@ -62,7 +59,6 @@ export const MenuView: React.FC<{
         <div className="mask-edges">
           <nav {...navScrollProps} className="overflow-x-auto no-scrollbar py-4 px-4 flex flex-nowrap items-center space-x-3 z-10 touch-pan-x select-none">
             {settings.categories.map(cat => {
-              // Only show category if it has products OR if it's RECOMMENDED
               const hasItems = settings.products.some(p => p.category === cat.id) || cat.id === 'RECOMMENDED';
               if (!hasItems) return null;
 

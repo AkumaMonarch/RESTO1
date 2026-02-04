@@ -90,10 +90,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
       return;
     }
     setIsTestingWebhook(true);
+    const now = new Date();
     try {
       const payload = {
         test: true,
         order_number: 999,
+        order_date: now.toLocaleDateString('en-GB'),
+        order_time: now.toLocaleTimeString('en-GB'),
         message_text: "📦 <b>New Order #999</b>\n\n👤 <b>Customer:</b> Test\n💰 <b>Total:</b> Rs 0.00",
         order_id: "test-id",
         customer_details: { 
@@ -101,7 +104,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
           phone: "1234567890", 
           address: "Test St", 
           diningMode: "EAT_IN",
-          platform: 'web_browser'
+          platform: 'web_browser',
+          telegram_id: null
         }
       };
       const res = await fetch(localSettings.notificationWebhookUrl, {
@@ -117,7 +121,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ settings, orders, isLive, 
         alert(`n8n Error (${res.status}): ${errorText || 'Check if the node is set to POST and active.'}`);
       }
     } catch (e: any) {
-      alert(`Connection failed: ${e.message}. This is usually a CORS issue or the URL is unreachable.`);
+      alert(`Connection failed: ${e.message}`);
     } finally {
       setIsTestingWebhook(false);
     }
@@ -215,7 +219,6 @@ VALUES (1, 'LittleIndia', '#E4002B', 'light', 'Rs')
 ON CONFLICT (id) DO NOTHING;
   `.trim();
 
-  // Generate Seed SQL for default categories and products
   const seedSql = `
 -- RUN THIS TO SEE PRODUCTS IF YOUR DB IS EMPTY
 -- 1. Insert Categories
@@ -314,7 +317,6 @@ ON CONFLICT (id) DO NOTHING;
               
               {showGuide && (
                 <div className="space-y-4 animate-scale-up">
-                  {/* Seed Section */}
                   <div className={`${cardStyles} bg-blue-500/5 border-blue-500/20 text-[10px] space-y-4`}>
                     <p className="font-black text-blue-500 uppercase tracking-widest underline">🚀 SEED DATA: Populates your menu</p>
                     <p className="opacity-80">If your menu is empty, copy this and run it in the Supabase SQL Editor to add the default items.</p>
@@ -326,7 +328,6 @@ ON CONFLICT (id) DO NOTHING;
                     />
                   </div>
 
-                  {/* Supabase Section */}
                   <div className={`${cardStyles} bg-emerald-500/5 border-emerald-500/20 text-[10px] space-y-4`}>
                     <p className="font-black text-emerald-500 uppercase tracking-widest underline">🗄️ Fix "Already Exists" Error</p>
                     <p className="opacity-80">If you get an error saying something "already exists", use this <b>Safe Script</b> below.</p>
